@@ -3,7 +3,7 @@ import streamlit.components.v1 as components
 import json
 
 # ==========================================
-# 1. 스트림릿 페이지 설정 (기본 제목 및 설명 제거)
+# 1. 스트림릿 페이지 설정
 # ==========================================
 st.set_page_config(page_title="역사적 사건 인과관계 지도", layout="wide")
 
@@ -52,23 +52,41 @@ html_code = f"""
             padding: 0;
             font-family: 'Malgun Gothic', sans-serif;
             overflow: hidden;
-            background-color: #f7f9fc;
+            background-color: #ffffff;
+            height: 100vh;
         }}
         #map-container {{
             display: flex;
             flex-direction: column;
             width: 100vw;
-            height: 95vh;
+            height: 100%;
             background-color: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
             overflow: hidden;
         }}
         
-        /* 메뉴 바 CSS (추가된 부분) */
+        /* 1. 제목 영역 CSS */
+        #title-area {{
+            flex: 0 0 55px;
+            width: 100%;
+            background-color: #ffffff;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            box-sizing: border-box;
+            z-index: 20;
+        }}
+        #main-title {{
+            font-size: 24px;
+            font-weight: 900;
+            color: #2d3436;
+            margin: 0;
+        }}
+
+        /* 2. 메뉴 바 CSS */
         #menu-bar {{
             flex: 0 0 35px;
             background-color: #f1f2f6;
+            border-top: 1px solid #dfe6e9;
             border-bottom: 1px solid #dfe6e9;
             display: flex;
             align-items: center;
@@ -101,7 +119,7 @@ html_code = f"""
             border: 1px solid #dfe6e9;
             border-radius: 4px;
             padding: 5px 0;
-            z-index: 200; /* 사이드 패널보다 높게 설정 */
+            z-index: 200;
         }}
         .menu-dropdown.show {{
             display: block;
@@ -116,36 +134,18 @@ html_code = f"""
             background-color: #f1f2f6;
         }}
 
-        /* 상단 탭 CSS */
-        #top-bar {{
-            flex: 0 0 48px;
+        /* 3. 필터 바 CSS (메뉴 하단) */
+        #filter-bar {{
+            flex: 0 0 45px;
             width: 100%;
             background-color: #ffffff;
             border-bottom: 2px solid #e2e8f0;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            box-sizing: border-box;
             padding: 0 20px;
+            box-sizing: border-box;
             z-index: 20;
         }}
-        
-        /* 제목 영역 */
-        #title-container {{
-            height: 100%;
-            display: flex;
-            align-items: flex-start;
-        }}
-        #main-title {{
-            font-size: 24px;
-            font-weight: 900;
-            color: #2d3436;
-            margin: 0;
-            line-height: 1;
-            padding-top: 8px;
-        }}
-
-        /* 필터링 UI 영역 */
         #filter-container {{
             display: flex;
             align-items: center;
@@ -172,12 +172,12 @@ html_code = f"""
             border-radius: 50%;
         }}
 
-        /* 지도 영역 */
+        /* 4. 지도 영역 CSS */
         #network-container {{
             flex: 1;
             position: relative;
             overflow: hidden;
-            background-color: #fcfcfc;
+            background-color: #ffffff; /* 하단 여백과 자연스럽게 연결하기 위해 흰색 적용 */
         }}
         svg {{
             width: 100%;
@@ -314,7 +314,12 @@ html_code = f"""
 
 <div id="map-container">
     
-    <!-- 메뉴 바 영역 (추가) -->
+    <!-- 1. 제목 영역 -->
+    <div id="title-area">
+        <h1 id="main-title">역사적 사건 인과관계 지도</h1>
+    </div>
+
+    <!-- 2. 메뉴 바 -->
     <div id="menu-bar">
         <div class="menu-item">
             <div class="menu-title">파일</div>
@@ -347,17 +352,14 @@ html_code = f"""
         </div>
     </div>
 
-    <!-- 상단 탭: 제목 및 필터 영역 -->
-    <div id="top-bar">
-        <div id="title-container">
-            <h1 id="main-title">역사적 사건 인과관계 지도</h1>
-        </div>
+    <!-- 3. 필터링 UI 영역 -->
+    <div id="filter-bar">
         <div id="filter-container">
             <!-- JS를 통해 동적 생성 -->
         </div>
     </div>
 
-    <!-- 하단: 네트워크 지도 영역 -->
+    <!-- 4. 하단: 네트워크 지도 영역 -->
     <div id="network-container">
         <svg id="network">
             <defs>
@@ -393,9 +395,7 @@ html_code = f"""
 </div>
 
 <script>
-    // ===========================
-    // 메뉴 바 상호작용 (추가된 스크립트)
-    // ===========================
+    // 메뉴 바 상호작용
     document.querySelectorAll('.menu-title').forEach(title => {{
         title.addEventListener('click', (e) => {{
             const parent = e.target.closest('.menu-item');
@@ -418,7 +418,6 @@ html_code = f"""
             dd.classList.remove('show');
         }});
     }});
-
 
     const data = {json.dumps(events_data)};
     
@@ -456,14 +455,11 @@ html_code = f"""
     const nodeElements = {{}};
     const edgeElements = [];
 
-    // ===========================
     // 필터링 UI 생성 및 로직
-    // ===========================
     Object.keys(nationColors).forEach(nation => {{
         const item = document.createElement('div');
         item.className = 'filter-item active';
         
-        // 색상 원 + 국가명
         item.innerHTML = `
             <div class="color-circle" style="background-color: ${{nationColors[nation]}};"></div>
             <span>${{nation}}</span>
@@ -483,9 +479,8 @@ html_code = f"""
         filterContainer.appendChild(item);
     }});
 
-    // 필터 상태 변경 시 노드 및 엣지 투명도 업데이트 함수
+    // 필터 상태 변경 시 노드 및 엣지 투명도 업데이트
     function updateFilters() {{
-        // 1. 노드 업데이트
         data.nodes.forEach(node => {{
             const nations = node.nations.split(',').map(s => s.trim());
             const isActive = nations.some(n => activeNations.has(n));
@@ -501,7 +496,6 @@ html_code = f"""
             }}
         }});
         
-        // 2. 간선(엣지) 업데이트
         edgeElements.forEach(e => {{
             const sourceDimmed = nodeElements[e.source.id].classList.contains('dimmed');
             const targetDimmed = nodeElements[e.target.id].classList.contains('dimmed');
@@ -514,11 +508,7 @@ html_code = f"""
         }});
     }}
 
-    // ===========================
     // 지도 요소(간선, 노드) 렌더링
-    // ===========================
-
-    // 1. 간선(화살표) 그리기
     data.edges.forEach(edge => {{
         const sourceNode = data.nodes.find(n => n.id === edge.source);
         const targetNode = data.nodes.find(n => n.id === edge.target);
@@ -538,7 +528,6 @@ html_code = f"""
         }}
     }});
 
-    // 다중 색상 파이 차트 노드 생성 함수
     function createPieSlices(g, nationsStr, radius) {{
         const nations = nationsStr.split(',').map(s => s.trim());
         const count = nations.length;
@@ -571,14 +560,12 @@ html_code = f"""
             }}
         }}
 
-        // 호버 및 외곽선 효과 투명 테두리 서클
         const borderCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         borderCircle.setAttribute('r', radius);
         borderCircle.setAttribute('class', 'node-border');
         g.appendChild(borderCircle);
     }}
 
-    // 2. 노드 그리기
     data.nodes.forEach(node => {{
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         g.setAttribute('class', 'node');
@@ -623,7 +610,6 @@ html_code = f"""
         }});
     }}
 
-    // 드래그 앤 드롭 이동 이벤트
     svg.addEventListener('mousemove', (e) => {{
         if (draggedNode) {{
             const newX = e.clientX - offsetX;
@@ -639,9 +625,7 @@ html_code = f"""
     svg.addEventListener('mouseup', () => draggedNode = null);
     svg.addEventListener('mouseleave', () => draggedNode = null);
 
-    // ===========================
     // 사이드바 로직
-    // ===========================
     window.openSidebarById = function(nodeId) {{
         const targetNode = data.nodes.find(n => n.id === nodeId);
         if (targetNode) {{
@@ -655,7 +639,6 @@ html_code = f"""
         panelDesc.textContent = node.desc;
         panelNations.textContent = node.nations;
 
-        // 원인 사건
         const causes = data.edges.filter(e => e.target === node.id);
         panelCauses.innerHTML = causes.length > 0 
             ? causes.map(e => {{
@@ -664,7 +647,6 @@ html_code = f"""
               }}).join('<br>') 
             : '<span style="color:#b2bec3;">없음 (시작 사건)</span>';
 
-        // 결과 사건
         const results = data.edges.filter(e => e.source === node.id);
         panelResults.innerHTML = results.length > 0 
             ? results.map(e => {{
@@ -690,5 +672,4 @@ html_code = f"""
 </html>
 """
 
-# Streamlit 화면 여백 최소화 및 높이 최대로 할당
 components.html(html_code, height=900, scrolling=False)
