@@ -8,20 +8,20 @@ import json
 st.set_page_config(page_title="역사적 사건 인과관계 지도", layout="wide")
 
 # ==========================================
-# 2. 역사 사건 데이터 정의 ('년' 제거, nations 추가)
+# 2. 역사 사건 데이터 정의 ('color' 속성 제거, 자바스크립트에서 nations 기반 자동 색상 부여)
 # ==========================================
 events_data = {
     "nodes": [
-        {"id": "1", "title": "성왕의 한강 수복", "year": "551", "nations": "백제, 신라, 고구려", "desc": "백제 성왕이 신라 진흥왕과 연합하여 고구려를 공격, 한강 하류 유역을 수복한 사건입니다.", "x": 100, "y": 150, "color": "#f8b400"},
-        {"id": "2", "title": "진흥왕의 한강 차지", "year": "553", "nations": "신라, 백제", "desc": "신라 진흥왕이 나제동맹을 깨고 기습적으로 백제를 공격하여 한강 유역을 독차지하고 신주를 설치했습니다.", "x": 300, "y": 150, "color": "#4a69bd"},
-        {"id": "3", "title": "관산성 전투", "year": "554", "nations": "백제, 신라, 대가야", "desc": "신라의 배신에 분노한 백제 성왕이 대가야와 연합하여 신라를 공격했으나, 관산성에서 전사하고 대패한 전투입니다.", "x": 500, "y": 150, "color": "#e55039"},
-        {"id": "4", "title": "살수대첩", "year": "612", "nations": "고구려, 수", "desc": "고구려의 을지문덕이 살수(청천강)에서 수나라의 30만 별동대를 크게 물리친 전투입니다.", "x": 100, "y": 350, "color": "#78e08f"},
-        {"id": "5", "title": "안시성 전투", "year": "645", "nations": "고구려, 당", "desc": "고구려 안시성에서 당나라 태종의 대군을 맞아 약 88일간의 치열한 공방전 끝에 당군을 물리친 전투입니다.", "x": 300, "y": 350, "color": "#78e08f"},
-        {"id": "6", "title": "나당 동맹 체결", "year": "648", "nations": "신라, 당", "desc": "백제의 잦은 공격으로 위기에 처한 신라(김춘추)가 당나라로 건너가 고구려와 백제를 멸망시키기 위한 군사 동맹을 맺은 사건입니다.", "x": 500, "y": 250, "color": "#4a69bd"},
-        {"id": "7", "title": "황산벌 전투", "year": "660", "nations": "백제, 신라", "desc": "나당 연합군이 백제를 공격하자, 계백 장군이 이끄는 5천 결사대가 황산벌에서 김유신의 5만 신라군에 맞서 싸운 전투입니다.", "x": 700, "y": 150, "color": "#e55039"},
-        {"id": "8", "title": "백제 멸망", "year": "660", "nations": "백제, 신라, 당", "desc": "황산벌 전투 패배 후 사비성이 나당 연합군에게 함락되며 의자왕이 항복, 백제가 멸망하게 됩니다.", "x": 900, "y": 150, "color": "#f8b400"},
-        {"id": "9", "title": "고구려 멸망", "year": "668", "nations": "고구려, 신라, 당", "desc": "오랜 전쟁과 연개소문 사후의 내분으로 국력이 약해진 고구려가 나당 연합군의 공격을 받고 평양성이 함락되며 멸망했습니다.", "x": 900, "y": 350, "color": "#78e08f"},
-        {"id": "10", "title": "기벌포 해전", "year": "676", "nations": "신라, 당", "desc": "신라가 한반도 전체를 지배하려는 당나라에 맞서 싸운 나당 전쟁의 마지막 전투. 기벌포에서 당의 수군을 궤멸시켜 삼국통일을 완수했습니다.", "x": 1100, "y": 250, "color": "#4a69bd"}
+        {"id": "1", "title": "성왕의 한강 수복", "year": "551", "nations": "백제, 신라, 고구려", "desc": "백제 성왕이 신라 진흥왕과 연합하여 고구려를 공격, 한강 하류 유역을 수복한 사건입니다.", "x": 100, "y": 150},
+        {"id": "2", "title": "진흥왕의 한강 차지", "year": "553", "nations": "신라, 백제", "desc": "신라 진흥왕이 나제동맹을 깨고 기습적으로 백제를 공격하여 한강 유역을 독차지하고 신주를 설치했습니다.", "x": 300, "y": 150},
+        {"id": "3", "title": "관산성 전투", "year": "554", "nations": "백제, 신라, 대가야", "desc": "신라의 배신에 분노한 백제 성왕이 대가야와 연합하여 신라를 공격했으나, 관산성에서 전사하고 대패한 전투입니다.", "x": 500, "y": 150},
+        {"id": "4", "title": "살수대첩", "year": "612", "nations": "고구려, 수", "desc": "고구려의 을지문덕이 살수(청천강)에서 수나라의 30만 별동대를 크게 물리친 전투입니다.", "x": 100, "y": 350},
+        {"id": "5", "title": "안시성 전투", "year": "645", "nations": "고구려, 당", "desc": "고구려 안시성에서 당나라 태종의 대군을 맞아 약 88일간의 치열한 공방전 끝에 당군을 물리친 전투입니다.", "x": 300, "y": 350},
+        {"id": "6", "title": "나당 동맹 체결", "year": "648", "nations": "신라, 당", "desc": "백제의 잦은 공격으로 위기에 처한 신라(김춘추)가 당나라로 건너가 고구려와 백제를 멸망시키기 위한 군사 동맹을 맺은 사건입니다.", "x": 500, "y": 250},
+        {"id": "7", "title": "황산벌 전투", "year": "660", "nations": "백제, 신라", "desc": "나당 연합군이 백제를 공격하자, 계백 장군이 이끄는 5천 결사대가 황산벌에서 김유신의 5만 신라군에 맞서 싸운 전투입니다.", "x": 700, "y": 150},
+        {"id": "8", "title": "백제 멸망", "year": "660", "nations": "백제, 신라, 당", "desc": "황산벌 전투 패배 후 사비성이 나당 연합군에게 함락되며 의자왕이 항복, 백제가 멸망하게 됩니다.", "x": 900, "y": 150},
+        {"id": "9", "title": "고구려 멸망", "year": "668", "nations": "고구려, 신라, 당", "desc": "오랜 전쟁과 연개소문 사후의 내분으로 국력이 약해진 고구려가 나당 연합군의 공격을 받고 평양성이 함락되며 멸망했습니다.", "x": 900, "y": 350},
+        {"id": "10", "title": "기벌포 해전", "year": "676", "nations": "신라, 당", "desc": "신라가 한반도 전체를 지배하려는 당나라에 맞서 싸운 나당 전쟁의 마지막 전투. 기벌포에서 당의 수군을 궤멸시켜 삼국통일을 완수했습니다.", "x": 1100, "y": 250}
     ],
     "edges": [
         {"source": "1", "target": "2"},
@@ -76,7 +76,32 @@ html_code = f"""
             padding: 10px 20px;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            pointer-events: none; /* 드래그 방해 안 함 */
+            pointer-events: none;
+        }}
+        /* 지도 하단 범례 CSS */
+        #legend {{
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            font-size: 13px;
+            display: flex;
+            gap: 15px;
+            pointer-events: none;
+        }}
+        .legend-item {{
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }}
+        .color-box {{
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
         }}
 
         svg {{
@@ -90,13 +115,14 @@ html_code = f"""
         .node {{
             cursor: pointer;
         }}
-        .node circle {{
+        /* 바깥쪽 테두리 서클(호버 효과용) */
+        .node .node-border {{
             stroke: #fff;
             stroke-width: 3px;
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
-            transition: stroke-width 0.2s;
+            fill: none;
+            transition: stroke-width 0.2s, stroke 0.2s;
         }}
-        .node:hover circle {{
+        .node:hover .node-border {{
             stroke-width: 5px;
             stroke: #333;
         }}
@@ -130,7 +156,7 @@ html_code = f"""
             padding: 30px 25px;
             box-sizing: border-box;
             z-index: 100;
-            border-left: 5px solid #4a69bd;
+            border-left: 5px solid #2d3436;
             overflow-y: auto;
         }}
         #side-panel.open {{
@@ -172,14 +198,14 @@ html_code = f"""
             border-radius: 8px;
         }}
         
-        /* 세부 정보 (관련 국가, 원인, 결과) CSS */
+        /* 세부 정보 CSS */
         .info-group {{
             margin-bottom: 15px;
             font-size: 14px;
         }}
         .info-label {{
             font-weight: bold;
-            color: #0984e3;
+            color: #2d3436;
             margin-bottom: 5px;
             display: flex;
             align-items: center;
@@ -189,16 +215,38 @@ html_code = f"""
             padding-left: 10px;
             line-height: 1.5;
         }}
+        /* 링크 클릭 스타일 */
+        .event-link {{
+            color: #0984e3;
+            text-decoration: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: color 0.2s;
+        }}
+        .event-link:hover {{
+            color: #74b9ff;
+            text-decoration: underline;
+        }}
     </style>
 </head>
 <body>
 
 <div id="map-container">
-    <!-- 지도 안으로 들어온 타이틀 -->
     <div id="map-title">역사적 사건 인과관계 지도</div>
+    
+    <!-- 국가 색상 범례 -->
+    <div id="legend">
+        <div class="legend-item"><div class="color-box" style="background:#27ae60;"></div>고구려</div>
+        <div class="legend-item"><div class="color-box" style="background:#f39c12;"></div>백제</div>
+        <div class="legend-item"><div class="color-box" style="background:#2980b9;"></div>신라</div>
+        <div class="legend-item"><div class="color-box" style="background:#c0392b;"></div>당</div>
+        <div class="legend-item"><div class="color-box" style="background:#8e44ad;"></div>수</div>
+        <div class="legend-item"><div class="color-box" style="background:#7f8c8d;"></div>대가야</div>
+    </div>
 
     <svg id="network">
         <defs>
+            <!-- 화살표 정의 -->
             <marker id="arrow" viewBox="0 -5 10 10" refX="28" refY="0" markerWidth="6" markerHeight="6" orient="auto">
                 <path d="M0,-5L10,0L0,5" fill="#b2bec3"></path>
             </marker>
@@ -232,6 +280,16 @@ html_code = f"""
 <script>
     const data = {json.dumps(events_data)};
     
+    // 국가별 고유 색상 설정
+    const nationColors = {{
+        "고구려": "#27ae60",
+        "백제": "#f39c12",
+        "신라": "#2980b9",
+        "당": "#c0392b",
+        "수": "#8e44ad",
+        "대가야": "#7f8c8d"
+    }};
+
     const svg = document.getElementById('network');
     const edgesLayer = document.getElementById('edges-layer');
     const nodesLayer = document.getElementById('nodes-layer');
@@ -272,27 +330,66 @@ html_code = f"""
         }}
     }});
 
+    // 다중 색상 파이 차트 노드 생성 함수
+    function createPieSlices(g, nationsStr, radius) {{
+        const nations = nationsStr.split(',').map(s => s.trim());
+        const count = nations.length;
+
+        if (count === 1) {{
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('r', radius);
+            circle.setAttribute('fill', nationColors[nations[0]] || '#95a5a6');
+            g.appendChild(circle);
+        }} else {{
+            let startAngle = -Math.PI / 2; // 12시 방향부터 시작
+            const angleStep = (2 * Math.PI) / count;
+
+            for (let i = 0; i < count; i++) {{
+                const endAngle = startAngle + angleStep;
+                const x1 = radius * Math.cos(startAngle);
+                const y1 = radius * Math.sin(startAngle);
+                const x2 = radius * Math.cos(endAngle);
+                const y2 = radius * Math.sin(endAngle);
+
+                const largeArcFlag = angleStep > Math.PI ? 1 : 0;
+                
+                // 중심(0,0)에서 선을 긋고, 호를 그린 후, 다시 중심으로 닫는 경로
+                const pathData = `M 0 0 L ${{x1}} ${{y1}} A ${{radius}} ${{radius}} 0 ${{largeArcFlag}} 1 ${{x2}} ${{y2}} Z`;
+                
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', pathData);
+                path.setAttribute('fill', nationColors[nations[i]] || '#95a5a6');
+                
+                g.appendChild(path);
+                startAngle = endAngle;
+            }}
+        }}
+
+        // 호버 및 외곽선 효과를 위한 투명 테두리 서클
+        const borderCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        borderCircle.setAttribute('r', radius);
+        borderCircle.setAttribute('class', 'node-border');
+        g.appendChild(borderCircle);
+    }}
+
     // 노드 그리기
     data.nodes.forEach(node => {{
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         g.setAttribute('class', 'node');
         g.setAttribute('transform', `translate(${{node.x}}, ${{node.y}})`);
         
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('r', 20);
-        circle.setAttribute('fill', node.color);
+        // 파이차트 형태의 노드 배경 렌더링 (반지름 20)
+        createPieSlices(g, node.nations, 20);
         
         const textTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        textTitle.setAttribute('y', 35);
+        textTitle.setAttribute('y', 38);
         textTitle.textContent = node.title;
 
-        // 연도 표기 ('년' 제외)
         const textYear = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         textYear.setAttribute('class', 'year');
-        textYear.setAttribute('y', 50);
+        textYear.setAttribute('y', 53);
         textYear.textContent = node.year;
         
-        g.appendChild(circle);
         g.appendChild(textTitle);
         g.appendChild(textYear);
         nodesLayer.appendChild(g);
@@ -337,28 +434,42 @@ html_code = f"""
     svg.addEventListener('mouseup', () => draggedNode = null);
     svg.addEventListener('mouseleave', () => draggedNode = null);
 
+    // ID로 사이드바 여는 헬퍼 함수 (링크 클릭 시 호출)
+    window.openSidebarById = function(nodeId) {{
+        const targetNode = data.nodes.find(n => n.id === nodeId);
+        if (targetNode) {{
+            openSidebar(targetNode);
+        }}
+    }};
+
     // 사이드바 로직
     function openSidebar(node) {{
         panelTitle.textContent = node.title;
-        panelYear.textContent = node.year; // '년' 없는 순수 연도
+        panelYear.textContent = node.year; 
         panelDesc.textContent = node.desc;
         panelNations.textContent = node.nations;
 
-        // 원인 사건 추적 (해당 노드가 target인 edge들 검색)
+        // 원인 사건 추적 후 링크(a 태그)로 변환
         const causes = data.edges.filter(e => e.target === node.id);
-        const causeTitles = causes.map(e => data.nodes.find(n => n.id === e.source).title);
-        panelCauses.innerHTML = causeTitles.length > 0 
-            ? causeTitles.map(t => `• ${{t}}`).join('<br>') 
+        panelCauses.innerHTML = causes.length > 0 
+            ? causes.map(e => {{
+                const n = data.nodes.find(x => x.id === e.source);
+                return `• <a href="#" class="event-link" onclick="openSidebarById('${{n.id}}'); return false;">${{n.title}}</a>`;
+              }}).join('<br>') 
             : '<span style="color:#b2bec3;">없음 (시작 사건)</span>';
 
-        // 결과 사건 추적 (해당 노드가 source인 edge들 검색)
+        // 결과 사건 추적 후 링크(a 태그)로 변환
         const results = data.edges.filter(e => e.source === node.id);
-        const resultTitles = results.map(e => data.nodes.find(n => n.id === e.target).title);
-        panelResults.innerHTML = resultTitles.length > 0 
-            ? resultTitles.map(t => `• ${{t}}`).join('<br>') 
+        panelResults.innerHTML = results.length > 0 
+            ? results.map(e => {{
+                const n = data.nodes.find(x => x.id === e.target);
+                return `• <a href="#" class="event-link" onclick="openSidebarById('${{n.id}}'); return false;">${{n.title}}</a>`;
+              }}).join('<br>') 
             : '<span style="color:#b2bec3;">없음 (마지막 사건)</span>';
 
-        sidePanel.style.borderLeftColor = node.color;
+        // 사이드바 테두리 색상을 가장 첫 번째 국가 색상으로 변경
+        const firstNation = node.nations.split(',')[0].trim();
+        sidePanel.style.borderLeftColor = nationColors[firstNation] || '#2d3436';
         sidePanel.classList.add('open');
     }}
 
