@@ -8,7 +8,7 @@ import json
 st.set_page_config(page_title="역사적 사건 인과관계 지도", layout="wide")
 
 # ==========================================
-# 2. 역사 사건 데이터 정의
+# 2. 역사 사건 데이터 정의 (황산벌 전투에 '당' 추가)
 # ==========================================
 events_data = {
     "nodes": [
@@ -18,7 +18,7 @@ events_data = {
         {"id": "4", "title": "살수대첩", "year": "612", "nations": "고구려, 수", "desc": "고구려의 을지문덕이 살수(청천강)에서 수나라의 30만 별동대를 크게 물리친 전투입니다.", "x": 100, "y": 350},
         {"id": "5", "title": "안시성 전투", "year": "645", "nations": "고구려, 당", "desc": "고구려 안시성에서 당나라 태종의 대군을 맞아 약 88일간의 치열한 공방전 끝에 당군을 물리친 전투입니다.", "x": 300, "y": 350},
         {"id": "6", "title": "나당 동맹 체결", "year": "648", "nations": "신라, 당", "desc": "백제의 잦은 공격으로 위기에 처한 신라(김춘추)가 당나라로 건너가 고구려와 백제를 멸망시키기 위한 군사 동맹을 맺은 사건입니다.", "x": 500, "y": 250},
-        {"id": "7", "title": "황산벌 전투", "year": "660", "nations": "백제, 신라", "desc": "나당 연합군이 백제를 공격하자, 계백 장군이 이끄는 5천 결사대가 황산벌에서 김유신의 5만 신라군에 맞서 싸운 전투입니다.", "x": 700, "y": 150},
+        {"id": "7", "title": "황산벌 전투", "year": "660", "nations": "백제, 신라, 당", "desc": "나당 연합군이 백제를 공격하자, 계백 장군이 이끄는 5천 결사대가 황산벌에서 김유신의 5만 신라군에 맞서 싸운 전투입니다.", "x": 700, "y": 150},
         {"id": "8", "title": "백제 멸망", "year": "660", "nations": "백제, 신라, 당", "desc": "황산벌 전투 패배 후 사비성이 나당 연합군에게 함락되며 의자왕이 항복, 백제가 멸망하게 됩니다.", "x": 900, "y": 150},
         {"id": "9", "title": "고구려 멸망", "year": "668", "nations": "고구려, 신라, 당", "desc": "오랜 전쟁과 연개소문 사후의 내분으로 국력이 약해진 고구려가 나당 연합군의 공격을 받고 평양성이 함락되며 멸망했습니다.", "x": 900, "y": 350},
         {"id": "10", "title": "기벌포 해전", "year": "676", "nations": "신라, 당", "desc": "신라가 한반도 전체를 지배하려는 당나라에 맞서 싸운 나당 전쟁의 마지막 전투. 기벌포에서 당의 수군을 궤멸시켜 삼국통일을 완수했습니다.", "x": 1100, "y": 250}
@@ -66,7 +66,6 @@ html_code = f"""
             overflow: hidden;
         }}
         
-        /* 전체 영역 감싸는 검은색 테두리 상자 */
         #bordered-box {{
             display: flex;
             flex-direction: column;
@@ -79,15 +78,14 @@ html_code = f"""
             background-color: #ffffff;
         }}
         
-        /* 1. 제목 및 메뉴 영역 CSS (제목 바로 오른쪽에 메뉴 배치) */
         #title-area {{
             flex: 0 0 55px;
             width: 100%;
             background-color: #ffffff;
             display: flex;
-            justify-content: flex-start; /* 좌측 정렬 */
+            justify-content: flex-start;
             align-items: center;
-            gap: 20px; /* 제목과 메뉴 사이 간격 */
+            gap: 20px;
             padding: 0 20px;
             box-sizing: border-box;
             z-index: 30;
@@ -100,7 +98,6 @@ html_code = f"""
             white-space: nowrap;
         }}
 
-        /* 캡슐형 메뉴 바 */
         #menu-bar {{
             background-color: #f1f2f6;
             border: 1px solid #dfe6e9;
@@ -155,14 +152,12 @@ html_code = f"""
             background-color: #f1f2f6;
         }}
 
-        /* 제목/메뉴 하단 구분선 */
         #divider {{
             width: 100%;
             height: 2px;
             background-color: #e2e8f0;
         }}
 
-        /* 2. 네트워크 지도 영역 CSS */
         #network-container {{
             flex: 1;
             position: relative;
@@ -179,7 +174,6 @@ html_code = f"""
             cursor: grabbing;
         }}
 
-        /* 우측 상단 필터 UI (캡슐형) */
         #filter-container {{
             position: absolute;
             top: 15px;
@@ -214,7 +208,6 @@ html_code = f"""
             border-radius: 50%;
         }}
         
-        /* 노드 및 화살표 CSS */
         .node {{
             cursor: pointer;
             transition: opacity 0.3s;
@@ -255,7 +248,7 @@ html_code = f"""
             opacity: 0.15;
         }}
         
-        /* 오른쪽 슬라이드 패널 CSS */
+        /* 오른쪽 세부 정보 탭 (사이드 패널) */
         #side-panel {{
             position: absolute;
             top: 0;
@@ -265,14 +258,21 @@ html_code = f"""
             background-color: #ffffff;
             box-shadow: -4px 0 15px rgba(0,0,0,0.1);
             transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            padding: 30px 25px;
+            padding: 30px 25px 30px 30px;
             box-sizing: border-box;
             z-index: 100;
-            border-left: 5px solid #2d3436;
             overflow-y: auto;
         }}
         #side-panel.open {{
             right: 0;
+        }}
+        /* 세부 정보 탭 좌측 등분 색상 띠 */
+        #panel-stripe {{
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 6px;
+            height: 100%;
         }}
         #close-btn {{
             position: absolute;
@@ -340,7 +340,7 @@ html_code = f"""
 
 <div id="map-container">
     <div id="bordered-box">
-        <!-- 1. 제목 영역 (제목 바로 오른쪽에 메뉴 배치) -->
+        <!-- 1. 제목 및 메뉴 영역 -->
         <div id="title-area">
             <h1 id="main-title">역사적 사건 인과관계 지도</h1>
             
@@ -377,12 +377,10 @@ html_code = f"""
             </div>
         </div>
 
-        <!-- 구분선 -->
         <div id="divider"></div>
 
         <!-- 2. 네트워크 지도 영역 -->
         <div id="network-container">
-            <!-- 우측 상단 필터 UI (캡슐형) -->
             <div id="filter-container">
                 <!-- JS를 통해 동적 생성 -->
             </div>
@@ -397,8 +395,9 @@ html_code = f"""
                 <g id="nodes-layer"></g>
             </svg>
             
-            <!-- 우측 슬라이드 패널 -->
+            <!-- 세부 정보 탭 -->
             <div id="side-panel">
+                <div id="panel-stripe"></div>
                 <button id="close-btn">&times;</button>
                 <div class="badge" id="panel-year"></div>
                 <h2 id="panel-title"></h2>
@@ -446,16 +445,30 @@ html_code = f"""
 
     const data = {json.dumps(events_data)};
     
-    const nationColors = {{
-        "고구려": "#27ae60",
-        "백제": "#f39c12",
-        "신라": "#2980b9",
-        "당": "#c0392b",
-        "수": "#8e44ad",
-        "대가야": "#7f8c8d"
-    }};
+    // 국가별 1부터 시작하는 ID 및 색상 정의
+    const nationsData = [
+        {{ id: 1, name: "고구려", color: "#27ae60" }},
+        {{ id: 2, name: "백제", color: "#f39c12" }},
+        {{ id: 3, name: "신라", color: "#2980b9" }},
+        {{ id: 4, name: "당", color: "#c0392b" }},
+        {{ id: 5, name: "수", color: "#8e44ad" }},
+        {{ id: 6, name: "대가야", color: "#7f8c8d" }}
+    ];
 
-    const activeNations = new Set(Object.keys(nationColors));
+    const nationMap = {{}};
+    nationsData.forEach(n => {{ nationMap[n.name] = n; }});
+
+    // 국가명을 ID 순서대로 정렬하는 헬퍼 함수
+    function getSortedNations(nationsStr) {{
+        const rawList = nationsStr.split(',').map(s => s.trim());
+        return rawList.sort((a, b) => {{
+            const idA = nationMap[a] ? nationMap[a].id : 999;
+            const idB = nationMap[b] ? nationMap[b].id : 999;
+            return idA - idB;
+        }});
+    }}
+
+    const activeNations = new Set(nationsData.map(n => n.name));
 
     const filterContainer = document.getElementById('filter-container');
     const svg = document.getElementById('network');
@@ -463,6 +476,7 @@ html_code = f"""
     const nodesLayer = document.getElementById('nodes-layer');
     
     const sidePanel = document.getElementById('side-panel');
+    const panelStripe = document.getElementById('panel-stripe');
     const panelTitle = document.getElementById('panel-title');
     const panelYear = document.getElementById('panel-year');
     const panelDesc = document.getElementById('panel-desc');
@@ -478,13 +492,14 @@ html_code = f"""
     const nodeElements = {{}};
     const edgeElements = [];
 
-    // 필터링 UI 생성
-    Object.keys(nationColors).forEach(nation => {{
+    // 필터링 UI 생성 (ID 순서대로 배치)
+    nationsData.forEach(nItem => {{
+        const nation = nItem.name;
         const item = document.createElement('div');
         item.className = 'filter-item active';
         
         item.innerHTML = `
-            <div class="color-circle" style="background-color: ${{nationColors[nation]}};"></div>
+            <div class="color-circle" style="background-color: ${{nItem.color}};"></div>
             <span>${{nation}}</span>
         `;
         
@@ -550,17 +565,18 @@ html_code = f"""
         }}
     }});
 
+    // 노드 파이 차트 렌더링 (ID 순서대로 12시부터 시계방향으로 배치)
     function createPieSlices(g, nationsStr, radius) {{
-        const nations = nationsStr.split(',').map(s => s.trim());
-        const count = nations.length;
+        const sortedNations = getSortedNations(nationsStr);
+        const count = sortedNations.length;
 
         if (count === 1) {{
             const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             circle.setAttribute('r', radius);
-            circle.setAttribute('fill', nationColors[nations[0]] || '#95a5a6');
+            circle.setAttribute('fill', nationMap[sortedNations[0]] ? nationMap[sortedNations[0]].color : '#95a5a6');
             g.appendChild(circle);
         }} else {{
-            let startAngle = -Math.PI / 2;
+            let startAngle = -Math.PI / 2; // 12시 방향에서 시작
             const angleStep = (2 * Math.PI) / count;
 
             for (let i = 0; i < count; i++) {{
@@ -575,7 +591,7 @@ html_code = f"""
                 
                 const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 path.setAttribute('d', pathData);
-                path.setAttribute('fill', nationColors[nations[i]] || '#95a5a6');
+                path.setAttribute('fill', nationMap[sortedNations[i]] ? nationMap[sortedNations[i]].color : '#95a5a6');
                 
                 g.appendChild(path);
                 startAngle = endAngle;
@@ -588,7 +604,7 @@ html_code = f"""
         g.appendChild(borderCircle);
     }}
 
-    // 노드 그리기
+    // 노드 생성
     data.nodes.forEach(node => {{
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         g.setAttribute('class', 'node');
@@ -660,7 +676,9 @@ html_code = f"""
         panelTitle.textContent = node.title;
         panelYear.textContent = node.year; 
         panelDesc.textContent = node.desc;
-        panelNations.textContent = node.nations;
+        
+        const sortedNations = getSortedNations(node.nations);
+        panelNations.textContent = sortedNations.join(', ');
 
         const causes = data.edges.filter(e => e.target === node.id);
         panelCauses.innerHTML = causes.length > 0 
@@ -678,8 +696,22 @@ html_code = f"""
               }}).join('<br>') 
             : '<span style="color:#b2bec3;">없음 (마지막 사건)</span>';
 
-        const firstNation = node.nations.split(',')[0].trim();
-        sidePanel.style.borderLeftColor = nationColors[firstNation] || '#2d3436';
+        // 좌측 색상 띠를 ID 순으로 위에서 아래로 등분 채우기
+        const count = sortedNations.length;
+        if (count === 1) {{
+            panelStripe.style.background = nationMap[sortedNations[0]] ? nationMap[sortedNations[0]].color : '#2d3436';
+        }} else {{
+            const step = 100 / count;
+            const colorStops = [];
+            sortedNations.forEach((nation, idx) => {{
+                const color = nationMap[nation] ? nationMap[nation].color : '#95a5a6';
+                const startPct = (idx * step).toFixed(2);
+                const endPct = ((idx + 1) * step).toFixed(2);
+                colorStops.push(`${{color}} ${{startPct}}% ${{endPct}}%`);
+            }});
+            panelStripe.style.background = `linear-gradient(to bottom, ${{colorStops.join(', ')}})`;
+        }}
+
         sidePanel.classList.add('open');
     }}
 
