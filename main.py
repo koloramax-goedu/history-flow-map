@@ -8,7 +8,7 @@ import json
 st.set_page_config(page_title="역사적 사건 인과관계 지도", layout="wide")
 
 # ==========================================
-# 2. 역사 사건 데이터 정의 ('color' 속성 제거, 자바스크립트에서 nations 기반 자동 색상 부여)
+# 2. 역사 사건 데이터 정의
 # ==========================================
 events_data = {
     "nodes": [
@@ -55,7 +55,8 @@ html_code = f"""
             background-color: #f7f9fc;
         }}
         #map-container {{
-            position: relative;
+            display: flex;
+            flex-direction: column;
             width: 100vw;
             height: 95vh;
             background-color: #ffffff;
@@ -63,47 +64,70 @@ html_code = f"""
             border-radius: 8px;
             overflow: hidden;
         }}
-        /* 지도 내 최상단 제목 CSS */
-        #map-title {{
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 10;
-            font-size: 26px;
+        
+        /* 상단 탭 CSS */
+        #top-bar {{
+            flex: 0 0 48px; /* 제목 24px의 2배 높이 설정 */
+            width: 100%;
+            background-color: #ffffff;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+            padding: 0 20px;
+            z-index: 20;
+        }}
+        
+        /* 제목 영역 (좌측 상단 정렬) */
+        #title-container {{
+            height: 100%;
+            display: flex;
+            align-items: flex-start; /* 좌상단 정렬 */
+        }}
+        #main-title {{
+            font-size: 24px;
             font-weight: 900;
             color: #2d3436;
-            background: rgba(255, 255, 255, 0.85);
-            padding: 10px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            pointer-events: none;
+            margin: 0;
+            line-height: 1;
+            padding-top: 8px; /* 위쪽 여백을 주어 좌측 최상단 느낌 강조 */
         }}
-        /* 지도 하단 범례 CSS */
-        #legend {{
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            z-index: 10;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 10px 15px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            font-size: 13px;
-            display: flex;
-            gap: 15px;
-            pointer-events: none;
-        }}
-        .legend-item {{
+
+        /* 필터링 UI 영역 */
+        #filter-container {{
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 15px;
+            height: 100%;
         }}
-        .color-box {{
-            width: 12px;
-            height: 12px;
+        .filter-item {{
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            color: #2d3436;
+            transition: all 0.2s;
+            user-select: none;
+        }}
+        .filter-item.inactive {{
+            opacity: 0.3; /* 제외되었을 때 텍스트 흐림 처리 */
+        }}
+        .color-circle {{
+            width: 14px;
+            height: 14px;
             border-radius: 50%;
         }}
 
+        /* 지도 영역 */
+        #network-container {{
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background-color: #fcfcfc;
+        }}
         svg {{
             width: 100%;
             height: 100%;
@@ -112,10 +136,16 @@ html_code = f"""
         svg:active {{
             cursor: grabbing;
         }}
+        
+        /* 노드 및 화살표 CSS */
         .node {{
             cursor: pointer;
+            transition: opacity 0.3s; /* 필터링 투명도 트랜지션 */
         }}
-        /* 바깥쪽 테두리 서클(호버 효과용) */
+        .node.dimmed {{
+            opacity: 0.15; /* 제외된 사건의 반투명 효과 */
+            pointer-events: none; /* 제외된 노드 클릭 불가 처리 */
+        }}
         .node .node-border {{
             stroke: #fff;
             stroke-width: 3px;
@@ -138,9 +168,14 @@ html_code = f"""
             font-weight: normal;
             fill: #636e72;
         }}
+        
         .edge {{
             stroke: #b2bec3;
             stroke-width: 2.5px;
+            transition: opacity 0.3s;
+        }}
+        .edge.dimmed {{
+            opacity: 0.15;
         }}
         
         /* 오른쪽 슬라이드 패널 CSS */
@@ -198,11 +233,7 @@ html_code = f"""
             border-radius: 8px;
         }}
         
-        /* 세부 정보 CSS */
-        .info-group {{
-            margin-bottom: 15px;
-            font-size: 14px;
-        }}
+        .info-group {{ margin-bottom: 15px; font-size: 14px; }}
         .info-label {{
             font-weight: bold;
             color: #2d3436;
@@ -215,7 +246,6 @@ html_code = f"""
             padding-left: 10px;
             line-height: 1.5;
         }}
-        /* 링크 클릭 스타일 */
         .event-link {{
             color: #0984e3;
             text-decoration: none;
@@ -232,47 +262,48 @@ html_code = f"""
 <body>
 
 <div id="map-container">
-    <div id="map-title">역사적 사건 인과관계 지도</div>
     
-    <!-- 국가 색상 범례 -->
-    <div id="legend">
-        <div class="legend-item"><div class="color-box" style="background:#27ae60;"></div>고구려</div>
-        <div class="legend-item"><div class="color-box" style="background:#f39c12;"></div>백제</div>
-        <div class="legend-item"><div class="color-box" style="background:#2980b9;"></div>신라</div>
-        <div class="legend-item"><div class="color-box" style="background:#c0392b;"></div>당</div>
-        <div class="legend-item"><div class="color-box" style="background:#8e44ad;"></div>수</div>
-        <div class="legend-item"><div class="color-box" style="background:#7f8c8d;"></div>대가야</div>
+    <!-- 상단 탭: 제목 및 필터 영역 -->
+    <div id="top-bar">
+        <div id="title-container">
+            <h1 id="main-title">역사적 사건 인과관계 지도</h1>
+        </div>
+        <div id="filter-container">
+            <!-- JS를 통해 동적 생성 -->
+        </div>
     </div>
 
-    <svg id="network">
-        <defs>
-            <!-- 화살표 정의 -->
-            <marker id="arrow" viewBox="0 -5 10 10" refX="28" refY="0" markerWidth="6" markerHeight="6" orient="auto">
-                <path d="M0,-5L10,0L0,5" fill="#b2bec3"></path>
-            </marker>
-        </defs>
-        <g id="edges-layer"></g>
-        <g id="nodes-layer"></g>
-    </svg>
-    
-    <div id="side-panel">
-        <button id="close-btn">&times;</button>
-        <div class="badge" id="panel-year"></div>
-        <h2 id="panel-title"></h2>
+    <!-- 하단: 네트워크 지도 영역 -->
+    <div id="network-container">
+        <svg id="network">
+            <defs>
+                <marker id="arrow" viewBox="0 -5 10 10" refX="28" refY="0" markerWidth="6" markerHeight="6" orient="auto">
+                    <path d="M0,-5L10,0L0,5" fill="#b2bec3"></path>
+                </marker>
+            </defs>
+            <g id="edges-layer"></g>
+            <g id="nodes-layer"></g>
+        </svg>
         
-        <p class="desc" id="panel-desc"></p>
-        
-        <div class="info-group">
-            <div class="info-label">🚩 관련 국가</div>
-            <div class="info-value" id="panel-nations"></div>
-        </div>
-        <div class="info-group">
-            <div class="info-label">🔻 원인 사건 (이전)</div>
-            <div class="info-value" id="panel-causes"></div>
-        </div>
-        <div class="info-group">
-            <div class="info-label">🔹 결과 사건 (이후)</div>
-            <div class="info-value" id="panel-results"></div>
+        <div id="side-panel">
+            <button id="close-btn">&times;</button>
+            <div class="badge" id="panel-year"></div>
+            <h2 id="panel-title"></h2>
+            
+            <p class="desc" id="panel-desc"></p>
+            
+            <div class="info-group">
+                <div class="info-label">🚩 관련 국가</div>
+                <div class="info-value" id="panel-nations"></div>
+            </div>
+            <div class="info-group">
+                <div class="info-label">🔻 원인 사건 (이전)</div>
+                <div class="info-value" id="panel-causes"></div>
+            </div>
+            <div class="info-group">
+                <div class="info-label">🔹 결과 사건 (이후)</div>
+                <div class="info-value" id="panel-results"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -290,6 +321,10 @@ html_code = f"""
         "대가야": "#7f8c8d"
     }};
 
+    // 활성화된 국가 집합 (기본값: 모두 표시)
+    const activeNations = new Set(Object.keys(nationColors));
+
+    const filterContainer = document.getElementById('filter-container');
     const svg = document.getElementById('network');
     const edgesLayer = document.getElementById('edges-layer');
     const nodesLayer = document.getElementById('nodes-layer');
@@ -310,7 +345,71 @@ html_code = f"""
     const nodeElements = {{}};
     const edgeElements = [];
 
-    // 간선(화살표) 그리기
+    // ===========================
+    // 필터링 UI 생성 및 로직
+    // ===========================
+    Object.keys(nationColors).forEach(nation => {{
+        const item = document.createElement('div');
+        item.className = 'filter-item active';
+        
+        // 색상 원 + 국가명
+        item.innerHTML = `
+            <div class="color-circle" style="background-color: ${{nationColors[nation]}};"></div>
+            <span>${{nation}}</span>
+        `;
+        
+        item.addEventListener('click', () => {{
+            if (activeNations.has(nation)) {{
+                activeNations.delete(nation);
+                item.classList.add('inactive');
+            }} else {{
+                activeNations.add(nation);
+                item.classList.remove('inactive');
+            }}
+            updateFilters();
+        }});
+        
+        filterContainer.appendChild(item);
+    }});
+
+    // 필터 상태 변경 시 노드 및 엣지 투명도 업데이트 함수
+    function updateFilters() {{
+        // 1. 노드 업데이트
+        data.nodes.forEach(node => {{
+            const nations = node.nations.split(',').map(s => s.trim());
+            // 관련된 국가 중 하나라도 켜져있으면 활성화(포함)
+            const isActive = nations.some(n => activeNations.has(n));
+            
+            const g = nodeElements[node.id];
+            if (isActive) {{
+                g.classList.remove('dimmed');
+            }} else {{
+                g.classList.add('dimmed');
+                // 만약 현재 닫혀있지 않고 열려있는 정보창이 꺼진 노드라면 사이드바 닫기
+                if (sidePanel.classList.contains('open') && panelTitle.textContent === node.title) {{
+                    closeSidebar();
+                }}
+            }}
+        }});
+        
+        // 2. 간선(엣지) 업데이트 - 연결된 양쪽 노드 중 하나라도 제외(dimmed)되면 엣지도 흐리게 처리
+        edgeElements.forEach(e => {{
+            const sourceDimmed = nodeElements[e.source.id].classList.contains('dimmed');
+            const targetDimmed = nodeElements[e.target.id].classList.contains('dimmed');
+            
+            if (!sourceDimmed && !targetDimmed) {{
+                e.line.classList.remove('dimmed');
+            }} else {{
+                e.line.classList.add('dimmed');
+            }}
+        }});
+    }}
+
+    // ===========================
+    // 지도 요소(간선, 노드) 렌더링
+    // ===========================
+
+    // 1. 간선(화살표) 그리기
     data.edges.forEach(edge => {{
         const sourceNode = data.nodes.find(n => n.id === edge.source);
         const targetNode = data.nodes.find(n => n.id === edge.target);
@@ -341,7 +440,7 @@ html_code = f"""
             circle.setAttribute('fill', nationColors[nations[0]] || '#95a5a6');
             g.appendChild(circle);
         }} else {{
-            let startAngle = -Math.PI / 2; // 12시 방향부터 시작
+            let startAngle = -Math.PI / 2;
             const angleStep = (2 * Math.PI) / count;
 
             for (let i = 0; i < count; i++) {{
@@ -352,8 +451,6 @@ html_code = f"""
                 const y2 = radius * Math.sin(endAngle);
 
                 const largeArcFlag = angleStep > Math.PI ? 1 : 0;
-                
-                // 중심(0,0)에서 선을 긋고, 호를 그린 후, 다시 중심으로 닫는 경로
                 const pathData = `M 0 0 L ${{x1}} ${{y1}} A ${{radius}} ${{radius}} 0 ${{largeArcFlag}} 1 ${{x2}} ${{y2}} Z`;
                 
                 const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -365,20 +462,19 @@ html_code = f"""
             }}
         }}
 
-        // 호버 및 외곽선 효과를 위한 투명 테두리 서클
+        // 호버 및 외곽선 효과 투명 테두리 서클
         const borderCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         borderCircle.setAttribute('r', radius);
         borderCircle.setAttribute('class', 'node-border');
         g.appendChild(borderCircle);
     }}
 
-    // 노드 그리기
+    // 2. 노드 그리기
     data.nodes.forEach(node => {{
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         g.setAttribute('class', 'node');
         g.setAttribute('transform', `translate(${{node.x}}, ${{node.y}})`);
         
-        // 파이차트 형태의 노드 배경 렌더링 (반지름 20)
         createPieSlices(g, node.nations, 20);
         
         const textTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -409,7 +505,7 @@ html_code = f"""
         }});
     }});
 
-    function updateEdges() {{
+    function updateEdgesPosition() {{
         edgeElements.forEach(e => {{
             e.line.setAttribute('x1', e.source.x);
             e.line.setAttribute('y1', e.source.y);
@@ -418,23 +514,27 @@ html_code = f"""
         }});
     }}
 
-    // 마우스 드래그 이벤트
+    // 드래그 앤 드롭 이동 이벤트
     svg.addEventListener('mousemove', (e) => {{
         if (draggedNode) {{
             const newX = e.clientX - offsetX;
-            const newY = e.clientY - offsetY;
+            const newY = e.clientY - offsetY; // top-bar 높이 오프셋은 clientY 계산 시 이미 반영됨
             draggedNode.x = newX;
             draggedNode.y = newY;
             
             nodeElements[draggedNode.id].setAttribute('transform', `translate(${{newX}}, ${{newY}})`);
-            updateEdges();
+            updateEdgesPosition();
         }}
     }});
 
     svg.addEventListener('mouseup', () => draggedNode = null);
     svg.addEventListener('mouseleave', () => draggedNode = null);
 
-    // ID로 사이드바 여는 헬퍼 함수 (링크 클릭 시 호출)
+    // ===========================
+    // 사이드바 로직
+    // ===========================
+    
+    // 링크 클릭 시 호출 함수
     window.openSidebarById = function(nodeId) {{
         const targetNode = data.nodes.find(n => n.id === nodeId);
         if (targetNode) {{
@@ -442,14 +542,13 @@ html_code = f"""
         }}
     }};
 
-    // 사이드바 로직
     function openSidebar(node) {{
         panelTitle.textContent = node.title;
         panelYear.textContent = node.year; 
         panelDesc.textContent = node.desc;
         panelNations.textContent = node.nations;
 
-        // 원인 사건 추적 후 링크(a 태그)로 변환
+        // 원인 사건
         const causes = data.edges.filter(e => e.target === node.id);
         panelCauses.innerHTML = causes.length > 0 
             ? causes.map(e => {{
@@ -458,7 +557,7 @@ html_code = f"""
               }}).join('<br>') 
             : '<span style="color:#b2bec3;">없음 (시작 사건)</span>';
 
-        // 결과 사건 추적 후 링크(a 태그)로 변환
+        // 결과 사건
         const results = data.edges.filter(e => e.source === node.id);
         panelResults.innerHTML = results.length > 0 
             ? results.map(e => {{
@@ -467,7 +566,6 @@ html_code = f"""
               }}).join('<br>') 
             : '<span style="color:#b2bec3;">없음 (마지막 사건)</span>';
 
-        // 사이드바 테두리 색상을 가장 첫 번째 국가 색상으로 변경
         const firstNation = node.nations.split(',')[0].trim();
         sidePanel.style.borderLeftColor = nationColors[firstNation] || '#2d3436';
         sidePanel.classList.add('open');
