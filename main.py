@@ -79,14 +79,15 @@ html_code = f"""
             background-color: #ffffff;
         }}
         
-        /* 1. 제목 및 우측 메뉴 영역 CSS */
+        /* 1. 제목 및 메뉴 영역 CSS (제목 바로 오른쪽에 메뉴 배치) */
         #title-area {{
             flex: 0 0 55px;
             width: 100%;
             background-color: #ffffff;
             display: flex;
-            justify-content: space-between; /* 좌측 제목, 우측 메뉴 */
+            justify-content: flex-start; /* 좌측 정렬 */
             align-items: center;
+            gap: 20px; /* 제목과 메뉴 사이 간격 */
             padding: 0 20px;
             box-sizing: border-box;
             z-index: 30;
@@ -96,9 +97,10 @@ html_code = f"""
             font-weight: 900;
             color: #2d3436;
             margin: 0;
+            white-space: nowrap;
         }}
 
-        /* 캡슐형 메뉴 바 (우측 정렬 배치) */
+        /* 캡슐형 메뉴 바 */
         #menu-bar {{
             background-color: #f1f2f6;
             border: 1px solid #dfe6e9;
@@ -338,7 +340,7 @@ html_code = f"""
 
 <div id="map-container">
     <div id="bordered-box">
-        <!-- 1. 제목 영역 (우측에 메뉴 통합 배치) -->
+        <!-- 1. 제목 영역 (제목 바로 오른쪽에 메뉴 배치) -->
         <div id="title-area">
             <h1 id="main-title">역사적 사건 인과관계 지도</h1>
             
@@ -378,7 +380,7 @@ html_code = f"""
         <!-- 구분선 -->
         <div id="divider"></div>
 
-        <!-- 2. 네트워크 지도 영역 (여백 없이 상단 밀착) -->
+        <!-- 2. 네트워크 지도 영역 -->
         <div id="network-container">
             <!-- 우측 상단 필터 UI (캡슐형) -->
             <div id="filter-container">
