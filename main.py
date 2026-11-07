@@ -66,7 +66,7 @@ html_code = f"""
             overflow: hidden;
         }}
         
-        /* 제목 영역부터 지도 영역까지 감싸는 전체 검은색 테두리 */
+        /* 전체 영역 감싸는 검은색 테두리 상자 */
         #bordered-box {{
             display: flex;
             flex-direction: column;
@@ -79,16 +79,17 @@ html_code = f"""
             background-color: #ffffff;
         }}
         
-        /* 1. 제목 영역 CSS */
+        /* 1. 제목 및 우측 메뉴 영역 CSS */
         #title-area {{
-            flex: 0 0 50px;
+            flex: 0 0 55px;
             width: 100%;
             background-color: #ffffff;
             display: flex;
+            justify-content: space-between; /* 좌측 제목, 우측 메뉴 */
             align-items: center;
-            padding: 15px 20px 5px 20px;
+            padding: 0 20px;
             box-sizing: border-box;
-            z-index: 20;
+            z-index: 30;
         }}
         #main-title {{
             font-size: 24px;
@@ -97,33 +98,23 @@ html_code = f"""
             margin: 0;
         }}
 
-        /* 2. 메뉴 바 래퍼 및 좌측 정렬 캡슐형 CSS */
-        #menu-wrapper {{
-            display: flex;
-            justify-content: flex-start; /* 좌측 정렬 */
-            align-items: center;
-            width: 100%;
-            padding: 5px 20px;
-            box-sizing: border-box;
-            z-index: 30;
-        }}
+        /* 캡슐형 메뉴 바 (우측 정렬 배치) */
         #menu-bar {{
             background-color: #f1f2f6;
             border: 1px solid #dfe6e9;
             display: flex;
             align-items: center;
-            justify-content: flex-start;
-            padding: 0 10px; /* 좌우 여백 축소 */
+            padding: 0 10px;
             height: 38px;
             border-radius: 20px;
             width: max-content;
         }}
         .menu-item {{
             position: relative;
-            margin: 0 2px; /* 간격 축소 */
+            margin: 0 2px;
         }}
         .menu-title {{
-            padding: 4px 10px; /* 카테고리 여백 축소 */
+            padding: 4px 10px;
             cursor: pointer;
             font-size: 14px;
             font-weight: bold;
@@ -162,15 +153,14 @@ html_code = f"""
             background-color: #f1f2f6;
         }}
 
-        /* 메뉴 아래 구분선 */
+        /* 제목/메뉴 하단 구분선 */
         #divider {{
             width: 100%;
             height: 2px;
             background-color: #e2e8f0;
-            margin-top: 5px;
         }}
 
-        /* 3. 지도 영역 CSS */
+        /* 2. 네트워크 지도 영역 CSS */
         #network-container {{
             flex: 1;
             position: relative;
@@ -187,7 +177,7 @@ html_code = f"""
             cursor: grabbing;
         }}
 
-        /* 4. 필터링 UI (우측 상단 캡슐 모양) */
+        /* 우측 상단 필터 UI (캡슐형) */
         #filter-container {{
             position: absolute;
             top: 15px;
@@ -348,13 +338,10 @@ html_code = f"""
 
 <div id="map-container">
     <div id="bordered-box">
-        <!-- 1. 제목 영역 -->
+        <!-- 1. 제목 영역 (우측에 메뉴 통합 배치) -->
         <div id="title-area">
             <h1 id="main-title">역사적 사건 인과관계 지도</h1>
-        </div>
-
-        <!-- 2. 메뉴 바 (좌측 정렬 캡슐형) -->
-        <div id="menu-wrapper">
+            
             <div id="menu-bar">
                 <div class="menu-item">
                     <div class="menu-title">파일</div>
@@ -388,10 +375,10 @@ html_code = f"""
             </div>
         </div>
 
-        <!-- 메뉴 하단 구분선 -->
+        <!-- 구분선 -->
         <div id="divider"></div>
 
-        <!-- 3. 네트워크 지도 영역 -->
+        <!-- 2. 네트워크 지도 영역 (여백 없이 상단 밀착) -->
         <div id="network-container">
             <!-- 우측 상단 필터 UI (캡슐형) -->
             <div id="filter-container">
