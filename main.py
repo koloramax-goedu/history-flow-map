@@ -82,25 +82,35 @@ html_code = f"""
             margin: 0;
         }}
 
-        /* 2. 메뉴 바 CSS */
+        /* 2. 메뉴 바 래퍼 및 캡슐형 CSS */
+        #menu-wrapper {{
+            display: flex;
+            justify-content: center; /* 전체 메뉴 영역 중앙 정렬 */
+            align-items: center;
+            width: 100%;
+            padding: 10px 0;
+            z-index: 30;
+        }}
         #menu-bar {{
-            flex: 0 0 35px;
             background-color: #f1f2f6;
-            border-top: 1px solid #dfe6e9;
-            border-bottom: 1px solid #dfe6e9;
+            border: 1px solid #dfe6e9;
             display: flex;
             align-items: center;
-            padding: 0 15px;
-            z-index: 30;
+            justify-content: center;
+            padding: 0 25px;
+            height: 42px;
+            border-radius: 25px; /* 캡슐 모양 */
+            width: max-content; /* 내부 컨텐츠 크기에 맞춤 */
         }}
         .menu-item {{
             position: relative;
-            margin-right: 5px;
+            margin: 0 5px;
         }}
         .menu-title {{
             padding: 6px 12px;
             cursor: pointer;
             font-size: 14px;
+            font-weight: bold;
             color: #2d3436;
             border-radius: 4px;
             user-select: none;
@@ -112,12 +122,14 @@ html_code = f"""
             display: none;
             position: absolute;
             top: 100%;
-            left: 0;
+            left: 50%;
+            transform: translateX(-50%); /* 드롭다운을 메뉴 텍스트 중앙에 배치 */
+            margin-top: 8px;
             background-color: #ffffff;
             min-width: 140px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             border: 1px solid #dfe6e9;
-            border-radius: 4px;
+            border-radius: 6px;
             padding: 5px 0;
             z-index: 200;
         }}
@@ -129,28 +141,60 @@ html_code = f"""
             font-size: 13px;
             color: #2d3436;
             cursor: pointer;
+            text-align: center;
         }}
         .dropdown-item:hover {{
             background-color: #f1f2f6;
         }}
 
-        /* 3. 필터 바 CSS (메뉴 하단) */
-        #filter-bar {{
-            flex: 0 0 45px;
+        /* 메뉴 아래 구분선 */
+        #divider {{
             width: 100%;
-            background-color: #ffffff;
-            border-bottom: 2px solid #e2e8f0;
-            display: flex;
-            align-items: center;
-            padding: 0 20px;
-            box-sizing: border-box;
-            z-index: 20;
+            height: 2px;
+            background-color: #e2e8f0;
+            margin-bottom: 15px;
         }}
+
+        /* 3. 지도 래퍼 및 영역 CSS */
+        #network-wrapper {{
+            flex: 1;
+            padding: 0 20px 20px 20px; /* 테두리가 보이도록 좌우, 하단 여백 추가 */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }}
+        #network-container {{
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background-color: #ffffff;
+            border: 1px solid #000000; /* 지도 영역 가느다란 검은색 테두리 */
+            border-radius: 8px;
+            box-sizing: border-box;
+        }}
+        svg {{
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }}
+        svg:active {{
+            cursor: grabbing;
+        }}
+
+        /* 4. 필터링 UI (우측 상단 캡슐 모양) */
         #filter-container {{
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border: 1px solid #000000; /* 지도 테두리와 동일한 두께/색상 */
+            border-radius: 25px; /* 캡슐 모양 */
+            padding: 8px 20px;
             display: flex;
             align-items: center;
             gap: 15px;
-            height: 100%;
+            z-index: 20;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1); /* 약간의 그림자 효과 */
         }}
         .filter-item {{
             display: flex;
@@ -170,22 +214,6 @@ html_code = f"""
             width: 14px;
             height: 14px;
             border-radius: 50%;
-        }}
-
-        /* 4. 지도 영역 CSS */
-        #network-container {{
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-            background-color: #ffffff; /* 하단 여백과 자연스럽게 연결하기 위해 흰색 적용 */
-        }}
-        svg {{
-            width: 100%;
-            height: 100%;
-            cursor: grab;
-        }}
-        svg:active {{
-            cursor: grabbing;
         }}
         
         /* 노드 및 화살표 CSS */
@@ -319,76 +347,83 @@ html_code = f"""
         <h1 id="main-title">역사적 사건 인과관계 지도</h1>
     </div>
 
-    <!-- 2. 메뉴 바 -->
-    <div id="menu-bar">
-        <div class="menu-item">
-            <div class="menu-title">파일</div>
-            <div class="menu-dropdown">
-                <div class="dropdown-item">빈 항목 1</div>
-                <div class="dropdown-item">빈 항목 2</div>
-                <div class="dropdown-item">빈 항목 3</div>
+    <!-- 2. 메뉴 바 (중앙 정렬 캡슐형) -->
+    <div id="menu-wrapper">
+        <div id="menu-bar">
+            <div class="menu-item">
+                <div class="menu-title">파일</div>
+                <div class="menu-dropdown">
+                    <div class="dropdown-item">빈 항목 1</div>
+                    <div class="dropdown-item">빈 항목 2</div>
+                    <div class="dropdown-item">빈 항목 3</div>
+                </div>
             </div>
-        </div>
-        <div class="menu-item">
-            <div class="menu-title">명령</div>
-            <div class="menu-dropdown">
-                <div class="dropdown-item">빈 항목 1</div>
-                <div class="dropdown-item">빈 항목 2</div>
+            <div class="menu-item">
+                <div class="menu-title">명령</div>
+                <div class="menu-dropdown">
+                    <div class="dropdown-item">빈 항목 1</div>
+                    <div class="dropdown-item">빈 항목 2</div>
+                </div>
             </div>
-        </div>
-        <div class="menu-item">
-            <div class="menu-title">화면</div>
-            <div class="menu-dropdown">
-                <div class="dropdown-item">빈 항목 1</div>
-                <div class="dropdown-item">빈 항목 2</div>
-                <div class="dropdown-item">빈 항목 3</div>
+            <div class="menu-item">
+                <div class="menu-title">화면</div>
+                <div class="menu-dropdown">
+                    <div class="dropdown-item">빈 항목 1</div>
+                    <div class="dropdown-item">빈 항목 2</div>
+                    <div class="dropdown-item">빈 항목 3</div>
+                </div>
             </div>
-        </div>
-        <div class="menu-item">
-            <div class="menu-title">기타</div>
-            <div class="menu-dropdown">
-                <div class="dropdown-item">빈 항목 1</div>
+            <div class="menu-item">
+                <div class="menu-title">기타</div>
+                <div class="menu-dropdown">
+                    <div class="dropdown-item">빈 항목 1</div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- 3. 필터링 UI 영역 -->
-    <div id="filter-bar">
-        <div id="filter-container">
-            <!-- JS를 통해 동적 생성 -->
-        </div>
-    </div>
+    <!-- 메뉴 하단 여백 및 구분선 -->
+    <div id="divider"></div>
 
-    <!-- 4. 하단: 네트워크 지도 영역 -->
-    <div id="network-container">
-        <svg id="network">
-            <defs>
-                <marker id="arrow" viewBox="0 -5 10 10" refX="28" refY="0" markerWidth="6" markerHeight="6" orient="auto">
-                    <path d="M0,-5L10,0L0,5" fill="#b2bec3"></path>
-                </marker>
-            </defs>
-            <g id="edges-layer"></g>
-            <g id="nodes-layer"></g>
-        </svg>
-        
-        <div id="side-panel">
-            <button id="close-btn">&times;</button>
-            <div class="badge" id="panel-year"></div>
-            <h2 id="panel-title"></h2>
+    <!-- 3. 네트워크 지도 래퍼 (여백 확보용) -->
+    <div id="network-wrapper">
+        <div id="network-container">
             
-            <p class="desc" id="panel-desc"></p>
+            <!-- 우측 상단 필터 UI (캡슐형) -->
+            <div id="filter-container">
+                <!-- JS를 통해 동적 생성 -->
+            </div>
+
+            <svg id="network">
+                <defs>
+                    <marker id="arrow" viewBox="0 -5 10 10" refX="28" refY="0" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M0,-5L10,0L0,5" fill="#b2bec3"></path>
+                    </marker>
+                </defs>
+                <g id="edges-layer"></g>
+                <g id="nodes-layer"></g>
+            </svg>
             
-            <div class="info-group">
-                <div class="info-label">🚩 관련 국가</div>
-                <div class="info-value" id="panel-nations"></div>
-            </div>
-            <div class="info-group">
-                <div class="info-label">🔻 원인 사건 (이전)</div>
-                <div class="info-value" id="panel-causes"></div>
-            </div>
-            <div class="info-group">
-                <div class="info-label">🔹 결과 사건 (이후)</div>
-                <div class="info-value" id="panel-results"></div>
+            <!-- 우측 슬라이드 패널 -->
+            <div id="side-panel">
+                <button id="close-btn">&times;</button>
+                <div class="badge" id="panel-year"></div>
+                <h2 id="panel-title"></h2>
+                
+                <p class="desc" id="panel-desc"></p>
+                
+                <div class="info-group">
+                    <div class="info-label">🚩 관련 국가</div>
+                    <div class="info-value" id="panel-nations"></div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">🔻 원인 사건 (이전)</div>
+                    <div class="info-value" id="panel-causes"></div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">🔹 결과 사건 (이후)</div>
+                    <div class="info-value" id="panel-results"></div>
+                </div>
             </div>
         </div>
     </div>
