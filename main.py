@@ -59,19 +59,34 @@ html_code = f"""
             display: flex;
             flex-direction: column;
             width: 100vw;
-            height: 100%;
+            height: 100vh;
             background-color: #ffffff;
+            padding: 15px;
+            box-sizing: border-box;
             overflow: hidden;
+        }}
+        
+        /* 제목 영역부터 지도 영역까지 감싸는 전체 검은색 테두리 */
+        #bordered-box {{
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            border: 1px solid #000000;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            background-color: #ffffff;
         }}
         
         /* 1. 제목 영역 CSS */
         #title-area {{
-            flex: 0 0 55px;
+            flex: 0 0 50px;
             width: 100%;
             background-color: #ffffff;
             display: flex;
             align-items: center;
-            padding: 0 20px;
+            padding: 15px 20px 5px 20px;
             box-sizing: border-box;
             z-index: 20;
         }}
@@ -82,13 +97,14 @@ html_code = f"""
             margin: 0;
         }}
 
-        /* 2. 메뉴 바 래퍼 및 캡슐형 CSS */
+        /* 2. 메뉴 바 래퍼 및 좌측 정렬 캡슐형 CSS */
         #menu-wrapper {{
             display: flex;
-            justify-content: center; /* 전체 메뉴 영역 중앙 정렬 */
+            justify-content: flex-start; /* 좌측 정렬 */
             align-items: center;
             width: 100%;
-            padding: 10px 0;
+            padding: 5px 20px;
+            box-sizing: border-box;
             z-index: 30;
         }}
         #menu-bar {{
@@ -96,18 +112,18 @@ html_code = f"""
             border: 1px solid #dfe6e9;
             display: flex;
             align-items: center;
-            justify-content: center;
-            padding: 0 25px;
-            height: 42px;
-            border-radius: 25px; /* 캡슐 모양 */
-            width: max-content; /* 내부 컨텐츠 크기에 맞춤 */
+            justify-content: flex-start;
+            padding: 0 10px; /* 좌우 여백 축소 */
+            height: 38px;
+            border-radius: 20px;
+            width: max-content;
         }}
         .menu-item {{
             position: relative;
-            margin: 0 5px;
+            margin: 0 2px; /* 간격 축소 */
         }}
         .menu-title {{
-            padding: 6px 12px;
+            padding: 4px 10px; /* 카테고리 여백 축소 */
             cursor: pointer;
             font-size: 14px;
             font-weight: bold;
@@ -122,11 +138,10 @@ html_code = f"""
             display: none;
             position: absolute;
             top: 100%;
-            left: 50%;
-            transform: translateX(-50%); /* 드롭다운을 메뉴 텍스트 중앙에 배치 */
-            margin-top: 8px;
+            left: 0;
+            margin-top: 6px;
             background-color: #ffffff;
-            min-width: 140px;
+            min-width: 130px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             border: 1px solid #dfe6e9;
             border-radius: 6px;
@@ -141,7 +156,7 @@ html_code = f"""
             font-size: 13px;
             color: #2d3436;
             cursor: pointer;
-            text-align: center;
+            text-align: left;
         }}
         .dropdown-item:hover {{
             background-color: #f1f2f6;
@@ -152,24 +167,15 @@ html_code = f"""
             width: 100%;
             height: 2px;
             background-color: #e2e8f0;
-            margin-bottom: 15px;
+            margin-top: 5px;
         }}
 
-        /* 3. 지도 래퍼 및 영역 CSS */
-        #network-wrapper {{
-            flex: 1;
-            padding: 0 20px 20px 20px; /* 테두리가 보이도록 좌우, 하단 여백 추가 */
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }}
+        /* 3. 지도 영역 CSS */
         #network-container {{
             flex: 1;
             position: relative;
             overflow: hidden;
             background-color: #ffffff;
-            border: 1px solid #000000; /* 지도 영역 가느다란 검은색 테두리 */
-            border-radius: 8px;
             box-sizing: border-box;
         }}
         svg {{
@@ -187,14 +193,14 @@ html_code = f"""
             top: 15px;
             right: 15px;
             background-color: rgba(255, 255, 255, 0.95);
-            border: 1px solid #000000; /* 지도 테두리와 동일한 두께/색상 */
-            border-radius: 25px; /* 캡슐 모양 */
+            border: 1px solid #000000;
+            border-radius: 25px;
             padding: 8px 20px;
             display: flex;
             align-items: center;
             gap: 15px;
             z-index: 20;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1); /* 약간의 그림자 효과 */
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }}
         .filter-item {{
             display: flex;
@@ -341,54 +347,52 @@ html_code = f"""
 <body>
 
 <div id="map-container">
-    
-    <!-- 1. 제목 영역 -->
-    <div id="title-area">
-        <h1 id="main-title">역사적 사건 인과관계 지도</h1>
-    </div>
+    <div id="bordered-box">
+        <!-- 1. 제목 영역 -->
+        <div id="title-area">
+            <h1 id="main-title">역사적 사건 인과관계 지도</h1>
+        </div>
 
-    <!-- 2. 메뉴 바 (중앙 정렬 캡슐형) -->
-    <div id="menu-wrapper">
-        <div id="menu-bar">
-            <div class="menu-item">
-                <div class="menu-title">파일</div>
-                <div class="menu-dropdown">
-                    <div class="dropdown-item">빈 항목 1</div>
-                    <div class="dropdown-item">빈 항목 2</div>
-                    <div class="dropdown-item">빈 항목 3</div>
+        <!-- 2. 메뉴 바 (좌측 정렬 캡슐형) -->
+        <div id="menu-wrapper">
+            <div id="menu-bar">
+                <div class="menu-item">
+                    <div class="menu-title">파일</div>
+                    <div class="menu-dropdown">
+                        <div class="dropdown-item">빈 항목 1</div>
+                        <div class="dropdown-item">빈 항목 2</div>
+                        <div class="dropdown-item">빈 항목 3</div>
+                    </div>
                 </div>
-            </div>
-            <div class="menu-item">
-                <div class="menu-title">명령</div>
-                <div class="menu-dropdown">
-                    <div class="dropdown-item">빈 항목 1</div>
-                    <div class="dropdown-item">빈 항목 2</div>
+                <div class="menu-item">
+                    <div class="menu-title">명령</div>
+                    <div class="menu-dropdown">
+                        <div class="dropdown-item">빈 항목 1</div>
+                        <div class="dropdown-item">빈 항목 2</div>
+                    </div>
                 </div>
-            </div>
-            <div class="menu-item">
-                <div class="menu-title">화면</div>
-                <div class="menu-dropdown">
-                    <div class="dropdown-item">빈 항목 1</div>
-                    <div class="dropdown-item">빈 항목 2</div>
-                    <div class="dropdown-item">빈 항목 3</div>
+                <div class="menu-item">
+                    <div class="menu-title">화면</div>
+                    <div class="menu-dropdown">
+                        <div class="dropdown-item">빈 항목 1</div>
+                        <div class="dropdown-item">빈 항목 2</div>
+                        <div class="dropdown-item">빈 항목 3</div>
+                    </div>
                 </div>
-            </div>
-            <div class="menu-item">
-                <div class="menu-title">기타</div>
-                <div class="menu-dropdown">
-                    <div class="dropdown-item">빈 항목 1</div>
+                <div class="menu-item">
+                    <div class="menu-title">기타</div>
+                    <div class="menu-dropdown">
+                        <div class="dropdown-item">빈 항목 1</div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- 메뉴 하단 여백 및 구분선 -->
-    <div id="divider"></div>
+        <!-- 메뉴 하단 구분선 -->
+        <div id="divider"></div>
 
-    <!-- 3. 네트워크 지도 래퍼 (여백 확보용) -->
-    <div id="network-wrapper">
+        <!-- 3. 네트워크 지도 영역 -->
         <div id="network-container">
-            
             <!-- 우측 상단 필터 UI (캡슐형) -->
             <div id="filter-container">
                 <!-- JS를 통해 동적 생성 -->
@@ -436,18 +440,15 @@ html_code = f"""
             const parent = e.target.closest('.menu-item');
             const dropdown = parent.querySelector('.menu-dropdown');
             
-            // 다른 열려있는 드롭다운 모두 닫기
             document.querySelectorAll('.menu-dropdown').forEach(dd => {{
                 if (dd !== dropdown) dd.classList.remove('show');
             }});
             
-            // 클릭한 메뉴 토글
             dropdown.classList.toggle('show');
-            e.stopPropagation(); // 맵 등 다른 곳 클릭 방지
+            e.stopPropagation();
         }});
     }});
 
-    // 외부 화면 클릭 시 드롭다운 닫기
     document.addEventListener('click', () => {{
         document.querySelectorAll('.menu-dropdown').forEach(dd => {{
             dd.classList.remove('show');
@@ -456,7 +457,6 @@ html_code = f"""
 
     const data = {json.dumps(events_data)};
     
-    // 국가별 고유 색상 설정
     const nationColors = {{
         "고구려": "#27ae60",
         "백제": "#f39c12",
@@ -466,7 +466,6 @@ html_code = f"""
         "대가야": "#7f8c8d"
     }};
 
-    // 활성화된 국가 집합 (기본값: 모두 표시)
     const activeNations = new Set(Object.keys(nationColors));
 
     const filterContainer = document.getElementById('filter-container');
@@ -490,7 +489,7 @@ html_code = f"""
     const nodeElements = {{}};
     const edgeElements = [];
 
-    // 필터링 UI 생성 및 로직
+    // 필터링 UI 생성
     Object.keys(nationColors).forEach(nation => {{
         const item = document.createElement('div');
         item.className = 'filter-item active';
@@ -514,7 +513,6 @@ html_code = f"""
         filterContainer.appendChild(item);
     }});
 
-    // 필터 상태 변경 시 노드 및 엣지 투명도 업데이트
     function updateFilters() {{
         data.nodes.forEach(node => {{
             const nations = node.nations.split(',').map(s => s.trim());
@@ -543,7 +541,7 @@ html_code = f"""
         }});
     }}
 
-    // 지도 요소(간선, 노드) 렌더링
+    // 간선(화살표) 그리기
     data.edges.forEach(edge => {{
         const sourceNode = data.nodes.find(n => n.id === edge.source);
         const targetNode = data.nodes.find(n => n.id === edge.target);
@@ -601,6 +599,7 @@ html_code = f"""
         g.appendChild(borderCircle);
     }}
 
+    // 노드 그리기
     data.nodes.forEach(node => {{
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         g.setAttribute('class', 'node');
