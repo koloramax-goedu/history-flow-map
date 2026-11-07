@@ -65,9 +65,60 @@ html_code = f"""
             overflow: hidden;
         }}
         
+        /* 메뉴 바 CSS (추가된 부분) */
+        #menu-bar {{
+            flex: 0 0 35px;
+            background-color: #f1f2f6;
+            border-bottom: 1px solid #dfe6e9;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            z-index: 30;
+        }}
+        .menu-item {{
+            position: relative;
+            margin-right: 5px;
+        }}
+        .menu-title {{
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #2d3436;
+            border-radius: 4px;
+            user-select: none;
+        }}
+        .menu-title:hover {{
+            background-color: #dfe6e9;
+        }}
+        .menu-dropdown {{
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: #ffffff;
+            min-width: 140px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border: 1px solid #dfe6e9;
+            border-radius: 4px;
+            padding: 5px 0;
+            z-index: 200; /* 사이드 패널보다 높게 설정 */
+        }}
+        .menu-dropdown.show {{
+            display: block;
+        }}
+        .dropdown-item {{
+            padding: 8px 15px;
+            font-size: 13px;
+            color: #2d3436;
+            cursor: pointer;
+        }}
+        .dropdown-item:hover {{
+            background-color: #f1f2f6;
+        }}
+
         /* 상단 탭 CSS */
         #top-bar {{
-            flex: 0 0 48px; /* 제목 24px의 2배 높이 설정 */
+            flex: 0 0 48px;
             width: 100%;
             background-color: #ffffff;
             border-bottom: 2px solid #e2e8f0;
@@ -79,11 +130,11 @@ html_code = f"""
             z-index: 20;
         }}
         
-        /* 제목 영역 (좌측 상단 정렬) */
+        /* 제목 영역 */
         #title-container {{
             height: 100%;
             display: flex;
-            align-items: flex-start; /* 좌상단 정렬 */
+            align-items: flex-start;
         }}
         #main-title {{
             font-size: 24px;
@@ -91,7 +142,7 @@ html_code = f"""
             color: #2d3436;
             margin: 0;
             line-height: 1;
-            padding-top: 8px; /* 위쪽 여백을 주어 좌측 최상단 느낌 강조 */
+            padding-top: 8px;
         }}
 
         /* 필터링 UI 영역 */
@@ -113,7 +164,7 @@ html_code = f"""
             user-select: none;
         }}
         .filter-item.inactive {{
-            opacity: 0.3; /* 제외되었을 때 텍스트 흐림 처리 */
+            opacity: 0.3;
         }}
         .color-circle {{
             width: 14px;
@@ -140,11 +191,11 @@ html_code = f"""
         /* 노드 및 화살표 CSS */
         .node {{
             cursor: pointer;
-            transition: opacity 0.3s; /* 필터링 투명도 트랜지션 */
+            transition: opacity 0.3s;
         }}
         .node.dimmed {{
-            opacity: 0.15; /* 제외된 사건의 반투명 효과 */
-            pointer-events: none; /* 제외된 노드 클릭 불가 처리 */
+            opacity: 0.15;
+            pointer-events: none;
         }}
         .node .node-border {{
             stroke: #fff;
@@ -263,6 +314,39 @@ html_code = f"""
 
 <div id="map-container">
     
+    <!-- 메뉴 바 영역 (추가) -->
+    <div id="menu-bar">
+        <div class="menu-item">
+            <div class="menu-title">파일</div>
+            <div class="menu-dropdown">
+                <div class="dropdown-item">빈 항목 1</div>
+                <div class="dropdown-item">빈 항목 2</div>
+                <div class="dropdown-item">빈 항목 3</div>
+            </div>
+        </div>
+        <div class="menu-item">
+            <div class="menu-title">명령</div>
+            <div class="menu-dropdown">
+                <div class="dropdown-item">빈 항목 1</div>
+                <div class="dropdown-item">빈 항목 2</div>
+            </div>
+        </div>
+        <div class="menu-item">
+            <div class="menu-title">화면</div>
+            <div class="menu-dropdown">
+                <div class="dropdown-item">빈 항목 1</div>
+                <div class="dropdown-item">빈 항목 2</div>
+                <div class="dropdown-item">빈 항목 3</div>
+            </div>
+        </div>
+        <div class="menu-item">
+            <div class="menu-title">기타</div>
+            <div class="menu-dropdown">
+                <div class="dropdown-item">빈 항목 1</div>
+            </div>
+        </div>
+    </div>
+
     <!-- 상단 탭: 제목 및 필터 영역 -->
     <div id="top-bar">
         <div id="title-container">
@@ -309,6 +393,33 @@ html_code = f"""
 </div>
 
 <script>
+    // ===========================
+    // 메뉴 바 상호작용 (추가된 스크립트)
+    // ===========================
+    document.querySelectorAll('.menu-title').forEach(title => {{
+        title.addEventListener('click', (e) => {{
+            const parent = e.target.closest('.menu-item');
+            const dropdown = parent.querySelector('.menu-dropdown');
+            
+            // 다른 열려있는 드롭다운 모두 닫기
+            document.querySelectorAll('.menu-dropdown').forEach(dd => {{
+                if (dd !== dropdown) dd.classList.remove('show');
+            }});
+            
+            // 클릭한 메뉴 토글
+            dropdown.classList.toggle('show');
+            e.stopPropagation(); // 맵 등 다른 곳 클릭 방지
+        }});
+    }});
+
+    // 외부 화면 클릭 시 드롭다운 닫기
+    document.addEventListener('click', () => {{
+        document.querySelectorAll('.menu-dropdown').forEach(dd => {{
+            dd.classList.remove('show');
+        }});
+    }});
+
+
     const data = {json.dumps(events_data)};
     
     // 국가별 고유 색상 설정
@@ -377,7 +488,6 @@ html_code = f"""
         // 1. 노드 업데이트
         data.nodes.forEach(node => {{
             const nations = node.nations.split(',').map(s => s.trim());
-            // 관련된 국가 중 하나라도 켜져있으면 활성화(포함)
             const isActive = nations.some(n => activeNations.has(n));
             
             const g = nodeElements[node.id];
@@ -385,14 +495,13 @@ html_code = f"""
                 g.classList.remove('dimmed');
             }} else {{
                 g.classList.add('dimmed');
-                // 만약 현재 닫혀있지 않고 열려있는 정보창이 꺼진 노드라면 사이드바 닫기
                 if (sidePanel.classList.contains('open') && panelTitle.textContent === node.title) {{
                     closeSidebar();
                 }}
             }}
         }});
         
-        // 2. 간선(엣지) 업데이트 - 연결된 양쪽 노드 중 하나라도 제외(dimmed)되면 엣지도 흐리게 처리
+        // 2. 간선(엣지) 업데이트
         edgeElements.forEach(e => {{
             const sourceDimmed = nodeElements[e.source.id].classList.contains('dimmed');
             const targetDimmed = nodeElements[e.target.id].classList.contains('dimmed');
@@ -518,7 +627,7 @@ html_code = f"""
     svg.addEventListener('mousemove', (e) => {{
         if (draggedNode) {{
             const newX = e.clientX - offsetX;
-            const newY = e.clientY - offsetY; // top-bar 높이 오프셋은 clientY 계산 시 이미 반영됨
+            const newY = e.clientY - offsetY; 
             draggedNode.x = newX;
             draggedNode.y = newY;
             
@@ -533,8 +642,6 @@ html_code = f"""
     // ===========================
     // 사이드바 로직
     // ===========================
-    
-    // 링크 클릭 시 호출 함수
     window.openSidebarById = function(nodeId) {{
         const targetNode = data.nodes.find(n => n.id === nodeId);
         if (targetNode) {{
