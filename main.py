@@ -8,7 +8,7 @@ import json
 st.set_page_config(page_title="역사적 사건 인과관계 지도", layout="wide")
 
 # ==========================================
-# 2. 역사 사건 데이터 정의 (황산벌 전투에 '당' 추가)
+# 2. 역사 사건 데이터 정의
 # ==========================================
 events_data = {
     "nodes": [
@@ -186,22 +186,20 @@ html_code = f"""
             fill: #636e72;
         }}
         
-        /* 엣지(화살표) 기본 및 강조 CSS */
+        /* 엣지(화살표) 기본 및 강조 CSS (형태 변화 제거, 색상만 변경) */
         .edge {{
             stroke: #b2bec3;
             stroke-width: 2.5px;
-            transition: stroke 0.3s, stroke-width 0.3s, opacity 0.3s;
+            transition: stroke 0.3s, opacity 0.3s;
         }}
         .edge.dimmed {{
             opacity: 0.15;
         }}
         .edge.highlight-cause {{
             stroke: #e74c3c !important; /* 원인 강조 (빨강) */
-            stroke-width: 4px !important;
         }}
         .edge.highlight-result {{
             stroke: #0984e3 !important; /* 결과 강조 (파랑) */
-            stroke-width: 4px !important;
         }}
         
         /* 오른쪽 세부 정보 탭 (사이드 패널) */
