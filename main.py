@@ -78,6 +78,7 @@ html_code = f"""
             background-color: #ffffff;
         }}
         
+        /* 1. 제목 영역 CSS */
         #title-area {{
             flex: 0 0 55px;
             width: 100%;
@@ -85,7 +86,6 @@ html_code = f"""
             display: flex;
             justify-content: flex-start;
             align-items: center;
-            gap: 20px;
             padding: 0 20px;
             box-sizing: border-box;
             z-index: 30;
@@ -98,66 +98,13 @@ html_code = f"""
             white-space: nowrap;
         }}
 
-        #menu-bar {{
-            background-color: #f1f2f6;
-            border: 1px solid #dfe6e9;
-            display: flex;
-            align-items: center;
-            padding: 0 10px;
-            height: 38px;
-            border-radius: 20px;
-            width: max-content;
-        }}
-        .menu-item {{
-            position: relative;
-            margin: 0 2px;
-        }}
-        .menu-title {{
-            padding: 4px 10px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            color: #2d3436;
-            border-radius: 4px;
-            user-select: none;
-        }}
-        .menu-title:hover {{
-            background-color: #dfe6e9;
-        }}
-        .menu-dropdown {{
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            margin-top: 6px;
-            background-color: #ffffff;
-            min-width: 130px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            border: 1px solid #dfe6e9;
-            border-radius: 6px;
-            padding: 5px 0;
-            z-index: 200;
-        }}
-        .menu-dropdown.show {{
-            display: block;
-        }}
-        .dropdown-item {{
-            padding: 8px 15px;
-            font-size: 13px;
-            color: #2d3436;
-            cursor: pointer;
-            text-align: left;
-        }}
-        .dropdown-item:hover {{
-            background-color: #f1f2f6;
-        }}
-
         #divider {{
             width: 100%;
             height: 2px;
             background-color: #e2e8f0;
         }}
 
+        /* 2. 네트워크 지도 영역 CSS */
         #network-container {{
             flex: 1;
             position: relative;
@@ -239,13 +186,22 @@ html_code = f"""
             fill: #636e72;
         }}
         
+        /* 엣지(화살표) 기본 및 강조 CSS */
         .edge {{
             stroke: #b2bec3;
             stroke-width: 2.5px;
-            transition: opacity 0.3s;
+            transition: stroke 0.3s, stroke-width 0.3s, opacity 0.3s;
         }}
         .edge.dimmed {{
             opacity: 0.15;
+        }}
+        .edge.highlight-cause {{
+            stroke: #e74c3c !important; /* 원인 강조 (빨강) */
+            stroke-width: 4px !important;
+        }}
+        .edge.highlight-result {{
+            stroke: #0984e3 !important; /* 결과 강조 (파랑) */
+            stroke-width: 4px !important;
         }}
         
         /* 오른쪽 세부 정보 탭 (사이드 패널) */
@@ -340,41 +296,9 @@ html_code = f"""
 
 <div id="map-container">
     <div id="bordered-box">
-        <!-- 1. 제목 및 메뉴 영역 -->
+        <!-- 1. 제목 영역 (메뉴 제거) -->
         <div id="title-area">
             <h1 id="main-title">역사적 사건 인과관계 지도</h1>
-            
-            <div id="menu-bar">
-                <div class="menu-item">
-                    <div class="menu-title">파일</div>
-                    <div class="menu-dropdown">
-                        <div class="dropdown-item">빈 항목 1</div>
-                        <div class="dropdown-item">빈 항목 2</div>
-                        <div class="dropdown-item">빈 항목 3</div>
-                    </div>
-                </div>
-                <div class="menu-item">
-                    <div class="menu-title">명령</div>
-                    <div class="menu-dropdown">
-                        <div class="dropdown-item">빈 항목 1</div>
-                        <div class="dropdown-item">빈 항목 2</div>
-                    </div>
-                </div>
-                <div class="menu-item">
-                    <div class="menu-title">화면</div>
-                    <div class="menu-dropdown">
-                        <div class="dropdown-item">빈 항목 1</div>
-                        <div class="dropdown-item">빈 항목 2</div>
-                        <div class="dropdown-item">빈 항목 3</div>
-                    </div>
-                </div>
-                <div class="menu-item">
-                    <div class="menu-title">기타</div>
-                    <div class="menu-dropdown">
-                        <div class="dropdown-item">빈 항목 1</div>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <div id="divider"></div>
@@ -387,8 +311,17 @@ html_code = f"""
 
             <svg id="network">
                 <defs>
+                    <!-- 기본 화살표 (회색) -->
                     <marker id="arrow" viewBox="0 -5 10 10" refX="28" refY="0" markerWidth="6" markerHeight="6" orient="auto">
                         <path d="M0,-5L10,0L0,5" fill="#b2bec3"></path>
+                    </marker>
+                    <!-- 원인 화살표 (빨강) -->
+                    <marker id="arrow-cause" viewBox="0 -5 10 10" refX="28" refY="0" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M0,-5L10,0L0,5" fill="#e74c3c"></path>
+                    </marker>
+                    <!-- 결과 화살표 (파랑) -->
+                    <marker id="arrow-result" viewBox="0 -5 10 10" refX="28" refY="0" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M0,-5L10,0L0,5" fill="#0984e3"></path>
                     </marker>
                 </defs>
                 <g id="edges-layer"></g>
@@ -422,27 +355,6 @@ html_code = f"""
 </div>
 
 <script>
-    // 메뉴 바 상호작용
-    document.querySelectorAll('.menu-title').forEach(title => {{
-        title.addEventListener('click', (e) => {{
-            const parent = e.target.closest('.menu-item');
-            const dropdown = parent.querySelector('.menu-dropdown');
-            
-            document.querySelectorAll('.menu-dropdown').forEach(dd => {{
-                if (dd !== dropdown) dd.classList.remove('show');
-            }});
-            
-            dropdown.classList.toggle('show');
-            e.stopPropagation();
-        }});
-    }});
-
-    document.addEventListener('click', () => {{
-        document.querySelectorAll('.menu-dropdown').forEach(dd => {{
-            dd.classList.remove('show');
-        }});
-    }});
-
     const data = {json.dumps(events_data)};
     
     // 국가별 1부터 시작하는 ID 및 색상 정의
@@ -664,7 +576,15 @@ html_code = f"""
     svg.addEventListener('mouseup', () => draggedNode = null);
     svg.addEventListener('mouseleave', () => draggedNode = null);
 
-    // 사이드바 로직
+    // 화살표 강조 초기화 함수
+    function clearEdgeHighlights() {{
+        edgeElements.forEach(e => {{
+            e.line.classList.remove('highlight-cause', 'highlight-result');
+            e.line.setAttribute('marker-end', 'url(#arrow)');
+        }});
+    }}
+
+    // 사이드바 열기 로직
     window.openSidebarById = function(nodeId) {{
         const targetNode = data.nodes.find(n => n.id === nodeId);
         if (targetNode) {{
@@ -696,6 +616,20 @@ html_code = f"""
               }}).join('<br>') 
             : '<span style="color:#b2bec3;">없음 (마지막 사건)</span>';
 
+        // 화살표 강조 처리
+        clearEdgeHighlights();
+        edgeElements.forEach(e => {{
+            if (e.target.id === node.id) {{
+                // 이 노드로 들어오는 엣지 (원인)
+                e.line.classList.add('highlight-cause');
+                e.line.setAttribute('marker-end', 'url(#arrow-cause)');
+            }} else if (e.source.id === node.id) {{
+                // 이 노드에서 나가는 엣지 (결과)
+                e.line.classList.add('highlight-result');
+                e.line.setAttribute('marker-end', 'url(#arrow-result)');
+            }}
+        }});
+
         // 좌측 색상 띠를 ID 순으로 위에서 아래로 등분 채우기
         const count = sortedNations.length;
         if (count === 1) {{
@@ -717,6 +651,7 @@ html_code = f"""
 
     function closeSidebar() {{
         sidePanel.classList.remove('open');
+        clearEdgeHighlights(); // 사이드바 닫을 때 강조 초기화
     }}
 
     svg.addEventListener('click', closeSidebar);
