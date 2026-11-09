@@ -8,105 +8,84 @@ import json
 st.set_page_config(page_title="역사적 사건 인과관계 지도", layout="wide")
 
 # ==========================================
-# 2. 역사 사건 데이터 정의
+# 2. 역사 사건 데이터 정의 및 세션 관리
 # ==========================================
-events_data = {
-    "map_size": {"x": 10000, "y": 10000},
-    "screen_position": {"x": 5000, "y": 5000},
-    "nations": [
-        {"id": 1, "name": "고구려", "color": "#27ae60"},
-        {"id": 2, "name": "백제", "color": "#f39c12"},
-        {"id": 3, "name": "신라", "color": "#2980b9"},
-        {"id": 4, "name": "당", "color": "#c0392b"},
-        {"id": 5, "name": "수", "color": "#8e44ad"},
-        {"id": 6, "name": "대가야", "color": "#7f8c8d"}
-    ],
-    "nodes": [
-        {
-            "id": 1, "name": "성왕의 한강 수복", "position": {"x": 5100, "y": 5150}, "year": 551,
-            "description": "백제 성왕이 신라 진흥왕과 연합하여 고구려를 공격, 한강 하류 유역을 수복한 사건입니다.",
-            "causes": [], "results": [2], "nations": [1, 2, 3]
-        },
-        {
-            "id": 2, "name": "진흥왕의 한강 차지", "position": {"x": 5300, "y": 5150}, "year": 553,
-            "description": "신라 진흥왕이 나제동맹을 깨고 기습적으로 백제를 공격하여 한강 유역을 독차지하고 신주를 설치했습니다.",
-            "causes": [1], "results": [3], "nations": [2, 3]
-        },
-        {
-            "id": 3, "name": "관산성 전투", "position": {"x": 5500, "y": 5150}, "year": 554,
-            "description": "신라의 배신에 분노한 백제 성왕이 대가야와 연합하여 신라를 공격했으나, 관산성에서 전사하고 대패한 전투입니다.",
-            "causes": [2], "results": [6], "nations": [2, 3, 6]
-        },
-        {
-            "id": 4, "name": "살수대첩", "position": {"x": 5100, "y": 5350}, "year": 612,
-            "description": "고구려의 을지문덕이 살수(청천강)에서 수나라의 30만 별동대를 크게 물리친 전투입니다.",
-            "causes": [], "results": [5], "nations": [1, 5]
-        },
-        {
-            "id": 5, "name": "안시성 전투", "position": {"x": 5300, "y": 5350}, "year": 645,
-            "description": "고구려 안시성에서 당나라 태종의 대군을 맞아 약 88일간의 치열한 공방전 끝에 당군을 물리친 전투입니다.",
-            "causes": [4], "results": [6], "nations": [1, 4]
-        },
-        {
-            "id": 6, "name": "나당 동맹 체결", "position": {"x": 5500, "y": 5250}, "year": 648,
-            "description": "백제의 잦은 공격으로 위기에 처한 신라(김춘추)가 당나라로 건너가 고구려와 백제를 멸망시키기 위한 군사 동맹을 맺은 사건입니다.",
-            "causes": [3, 5], "results": [7, 9], "nations": [3, 4]
-        },
-        {
-            "id": 7, "name": "황산벌 전투", "position": {"x": 5700, "y": 5150}, "year": 660,
-            "description": "나당 연합군이 백제를 공격하자, 계백 장군이 이끄는 5천 결사대가 황산벌에서 김유신의 5만 신라군에 맞서 싸운 전투입니다.",
-            "causes": [6], "results": [8], "nations": [2, 3, 4]
-        },
-        {
-            "id": 8, "name": "백제 멸망", "position": {"x": 5900, "y": 5150}, "year": 660,
-            "description": "황산벌 전투 패배 후 사비성이 나당 연합군에게 함락되며 의자왕이 항복, 백제가 멸망하게 됩니다.",
-            "causes": [7], "results": [9, 10], "nations": [2, 3, 4]
-        },
-        {
-            "id": 9, "name": "고구려 멸망", "position": {"x": 5900, "y": 5350}, "year": 668,
-            "description": "오랜 전쟁과 연개소문 사후의 내분으로 국력이 약해진 고구려가 나당 연합군의 공격을 받고 평양성이 함락되며 멸망했습니다.",
-            "causes": [6, 8], "results": [10], "nations": [1, 3, 4]
-        },
-        {
-            "id": 10, "name": "기벌포 해전", "position": {"x": 6100, "y": 5250}, "year": 676,
-            "description": "신라가 한반도 전체를 지배하려는 당나라에 맞서 싸운 나당 전쟁의 마지막 전투. 기벌포에서 당의 수군을 궤멸시켜 삼국통일을 완수했습니다.",
-            "causes": [8, 9], "results": [], "nations": [3, 4]
-        }
-    ]
-}
-
-# ==========================================
-# 3. 데이터 필터링
-# ==========================================
-nation_options = {n["id"]: n["name"] for n in events_data["nations"]}
-
-selected_nation_ids = st.multiselect(
-    "표시할 국가 선택",
-    options=list(nation_options.keys()),
-    format_func=lambda x: nation_options[x],
-    default=list(nation_options.keys())
-)
-
-filtered_nodes = [
-    node for node in events_data["nodes"]
-    if any(nid in selected_nation_ids for nid in node["nations"])
-]
-
-filtered_events_data = {
-    "map_size": events_data["map_size"],
-    "screen_position": events_data["screen_position"],
-    "nations": [n for n in events_data["nations"] if n["id"] in selected_nation_ids],
-    "nodes": filtered_nodes
-}
+if 'events_data' not in st.session_state:
+    st.session_state.events_data = {
+        "map_size": {"x": 10000, "y": 10000},
+        "screen_position": {"x": 5000, "y": 5000},
+        "nations": [
+            {"id": 1, "name": "고구려", "color": "#27ae60"},
+            {"id": 2, "name": "백제", "color": "#f39c12"},
+            {"id": 3, "name": "신라", "color": "#2980b9"},
+            {"id": 4, "name": "당", "color": "#c0392b"},
+            {"id": 5, "name": "수", "color": "#8e44ad"},
+            {"id": 6, "name": "대가야", "color": "#7f8c8d"}
+        ],
+        "nodes": [
+            {
+                "id": 1, "name": "성왕의 한강 수복", "position": {"x": 5100, "y": 5150}, "year": 551,
+                "description": "백제 성왕이 신라 진흥왕과 연합하여 고구려를 공격, 한강 하류 유역을 수복한 사건입니다.",
+                "causes": [], "results": [2], "nations": [1, 2, 3]
+            },
+            {
+                "id": 2, "name": "진흥왕의 한강 차지", "position": {"x": 5300, "y": 5150}, "year": 553,
+                "description": "신라 진흥왕이 나제동맹을 깨고 기습적으로 백제를 공격하여 한강 유역을 독차지하고 신주를 설치했습니다.",
+                "causes": [1], "results": [3], "nations": [2, 3]
+            },
+            {
+                "id": 3, "name": "관산성 전투", "position": {"x": 5500, "y": 5150}, "year": 554,
+                "description": "신라의 배신에 분노한 백제 성왕이 대가야와 연합하여 신라를 공격했으나, 관산성에서 전사하고 대패한 전투입니다.",
+                "causes": [2], "results": [6], "nations": [2, 3, 6]
+            },
+            {
+                "id": 4, "name": "살수대첩", "position": {"x": 5100, "y": 5350}, "year": 612,
+                "description": "고구려의 을지문덕이 살수(청천강)에서 수나라의 30만 별동대를 크게 물리친 전투입니다.",
+                "causes": [], "results": [5], "nations": [1, 5]
+            },
+            {
+                "id": 5, "name": "안시성 전투", "position": {"x": 5300, "y": 5350}, "year": 645,
+                "description": "고구려 안시성에서 당나라 태종의 대군을 맞아 약 88일간의 치열한 공방전 끝에 당군을 물리친 전투입니다.",
+                "causes": [4], "results": [6], "nations": [1, 4]
+            },
+            {
+                "id": 6, "name": "나당 동맹 체결", "position": {"x": 5500, "y": 5250}, "year": 648,
+                "description": "백제의 잦은 공격으로 위기에 처한 신라(김춘추)가 당나라로 건너가 고구려와 백제를 멸망시키기 위한 군사 동맹을 맺은 사건입니다.",
+                "causes": [3, 5], "results": [7, 9], "nations": [3, 4]
+            },
+            {
+                "id": 7, "name": "황산벌 전투", "position": {"x": 5700, "y": 5150}, "year": 660,
+                "description": "나당 연합군이 백제를 공격하자, 계백 장군이 이끄는 5천 결사대가 황산벌에서 김유신의 5만 신라군에 맞서 싸운 전투입니다.",
+                "causes": [6], "results": [8], "nations": [2, 3, 4]
+            },
+            {
+                "id": 8, "name": "백제 멸망", "position": {"x": 5900, "y": 5150}, "year": 660,
+                "description": "황산벌 전투 패배 후 사비성이 나당 연합군에게 함락되며 의자왕이 항복, 백제가 멸망하게 됩니다.",
+                "causes": [7], "results": [9, 10], "nations": [2, 3, 4]
+            },
+            {
+                "id": 9, "name": "고구려 멸망", "position": {"x": 5900, "y": 5350}, "year": 668,
+                "description": "오랜 전쟁과 연개소문 사후의 내분으로 국력이 약해진 고구려가 나당 연합군의 공격을 받고 평양성이 함락되며 멸망했습니다.",
+                "causes": [6, 8], "results": [10], "nations": [1, 3, 4]
+            },
+            {
+                "id": 10, "name": "기벌포 해전", "position": {"x": 6100, "y": 5250}, "year": 676,
+                "description": "신라가 한반도 전체를 지배하려는 당나라에 맞서 싸운 나당 전쟁의 마지막 전투. 기벌포에서 당의 수군을 궤멸시켜 삼국통일을 완수했습니다.",
+                "causes": [8, 9], "results": [], "nations": [3, 4]
+            }
+        ]
+    }
 
 # ==========================================
-# 4. HTML/CSS/JS 통합 컴포넌트 코드
+# 3. HTML/CSS/JS Component (Streamlit 통신 포함)
 # ==========================================
 html_code = f"""
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
+    <!-- Streamlit Component JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/streamlit-component-lib@1.4.0/dist/streamlit-component-lib.js"></script>
     <style>
         body {{
             margin: 0; padding: 0;
@@ -173,7 +152,6 @@ html_code = f"""
             display: flex; justify-content: space-between; align-items: center; gap: 20px;
         }}
         .dropdown-item:hover:not(.disabled) {{ background-color: #f1f2f6; }}
-        
         .dropdown-item.disabled {{ color: #b2bec3; cursor: default; }}
         .shortcut-text {{ font-size: 11px; color: #a4b0be; user-select: none; pointer-events: none; }}
 
@@ -342,18 +320,15 @@ html_code = f"""
 <input type="file" id="file-input" accept=".json" style="display: none;">
 
 <script>
-    let appData = {json.dumps(filtered_events_data)};
+    let appData = {json.dumps(st.session_state.events_data)};
     let initialData = JSON.parse(JSON.stringify(appData));
     let isDirty = false;
-    
     let isMapFocused = false;
     const borderedBox = document.getElementById('bordered-box');
 
     let draggedNode = null;
     let offsetX = 0, offsetY = 0;
-    let nodeMoved = false;
     let dragStartX = 0, dragStartY = 0;
-    let origNodeX = 0, origNodeY = 0;
     let isSignificantDrag = false;
     const DRAG_THRESHOLD = 5;
     
@@ -367,93 +342,23 @@ html_code = f"""
     }});
 
     document.addEventListener('mousedown', (e) => {{
-        if (!borderedBox.contains(e.target)) {{
-            isMapFocused = false;
-        }}
+        if (!borderedBox.contains(e.target)) isMapFocused = false;
     }});
 
     function handleDragInterrupt() {{
         if (draggedNode) {{
-            if (isSignificantDrag) {{
-                pushHistory();
-                isDirty = true;
-            }}
+            if (isSignificantDrag) pushHistory();
             draggedNode = null;
-            nodeMoved = false;
             isSignificantDrag = false;
-            checkNodeHover();
         }}
         if (isPanning) {{
             isPanning = false;
-            isDirty = true;
             if (historyIndex >= 0) historyStack[historyIndex] = JSON.stringify(appData);
         }}
     }}
 
-    window.addEventListener('blur', () => {{
-        isMapFocused = false;
-        handleDragInterrupt();
-    }});
-    
+    window.addEventListener('blur', handleDragInterrupt);
     borderedBox.addEventListener('mouseleave', handleDragInterrupt);
-
-    let globalMouseX = -1;
-    let globalMouseY = -1;
-    let globalMouseDown = false;
-
-    window.addEventListener('mousemove', (e) => {{
-        globalMouseX = e.clientX;
-        globalMouseY = e.clientY;
-        globalMouseDown = (e.buttons > 0);
-        checkNodeHover();
-    }});
-
-    window.addEventListener('mousedown', () => {{
-        globalMouseDown = true;
-        checkNodeHover();
-    }});
-
-    window.addEventListener('mouseup', () => {{
-        globalMouseDown = false;
-        if (isPanning) {{
-            isPanning = false;
-            isDirty = true;
-            if (historyIndex >= 0) {{
-                historyStack[historyIndex] = JSON.stringify(appData);
-            }}
-        }}
-        checkNodeHover();
-    }});
-
-    window.addEventListener('focus', () => {{
-        checkNodeHover();
-    }});
-
-    window.addEventListener('mouseout', (e) => {{
-        if (e.relatedTarget === null) {{
-            document.querySelectorAll('.node').forEach(n => {{
-                if (draggedNode && nodeElements[draggedNode.id] === n) return;
-                n.classList.remove('hover-active');
-            }});
-        }}
-    }});
-
-    function checkNodeHover() {{
-        document.querySelectorAll('.node').forEach(n => {{
-            if (draggedNode && nodeElements[draggedNode.id] === n) return;
-            n.classList.remove('hover-active');
-        }});
-        
-        if (globalMouseDown || globalMouseX < 0 || globalMouseY < 0) return;
-        
-        const el = document.elementFromPoint(globalMouseX, globalMouseY);
-        if (el) {{
-            const node = el.closest('.node');
-            if (node && !node.classList.contains('dimmed')) {{
-                node.classList.add('hover-active');
-            }}
-        }}
-    }}
 
     let historyStack = [];
     let historyIndex = -1;
@@ -492,26 +397,11 @@ html_code = f"""
     function updateUndoRedoMenu() {{
         const btnUndo = document.getElementById('menu-undo');
         const btnRedo = document.getElementById('menu-redo');
-        
         if (historyIndex <= 0) btnUndo.classList.add('disabled');
         else btnUndo.classList.remove('disabled');
-
         if (historyIndex >= historyStack.length - 1) btnRedo.classList.add('disabled');
         else btnRedo.classList.remove('disabled');
     }}
-    
-    window.addEventListener('beforeunload', (e) => {{
-        if (isDirty) {{
-            e.preventDefault();
-            e.returnValue = '';
-        }}
-    }});
-
-    let saveCooldown = false;
-    let zKeyActive = false;
-    let yKeyActive = false;
-    let zTimeout = null, zInterval = null;
-    let yTimeout = null, yInterval = null;
 
     function executeSave() {{
         const dataStr = JSON.stringify(appData, null, 2);
@@ -522,171 +412,17 @@ html_code = f"""
         a.download = "history_map.json";
         a.click();
         URL.revokeObjectURL(url);
-        isDirty = false;
     }}
 
     window.addEventListener('keydown', (e) => {{
         if (e.ctrlKey || e.metaKey) {{
             const key = e.key ? e.key.toLowerCase() : '';
             const code = e.code;
-
-            const isS = key === 's' || key === 'ㄴ' || code === 'KeyS';
-            const isL = key === 'l' || key === 'ㅣ' || code === 'KeyL';
-            const isZ = key === 'z' || key === 'ㅋ' || code === 'KeyZ';
-            const isY = key === 'y' || key === 'ㅛ' || code === 'KeyY';
-
-            if (isS || isL || isZ || isY) {{
-                e.preventDefault();
-
-                if (isS) {{
-                    if (!saveCooldown) {{
-                        executeSave();
-                        saveCooldown = true;
-                        setTimeout(() => {{ saveCooldown = false; }}, 2000);
-                    }}
-                }}
-                else if (isL) {{
-                    document.getElementById('file-input').click();
-                }}
-                else if (isZ) {{
-                    if (!zKeyActive) {{
-                        zKeyActive = true;
-                        doUndo();
-                        zTimeout = setTimeout(() => {{
-                            zInterval = setInterval(doUndo, 100);
-                        }}, 300);
-                    }}
-                }}
-                else if (isY) {{
-                    if (!yKeyActive) {{
-                        yKeyActive = true;
-                        doRedo();
-                        yTimeout = setTimeout(() => {{
-                            yInterval = setInterval(doRedo, 100);
-                        }}, 300);
-                    }}
-                }}
-            }}
+            if (key === 's' || key === 'ㄴ' || code === 'KeyS') {{ e.preventDefault(); executeSave(); }}
+            else if (key === 'l' || key === 'ㅣ' || code === 'KeyL') {{ e.preventDefault(); document.getElementById('file-input').click(); }}
+            else if (key === 'z' || key === 'ㅋ' || code === 'KeyZ') {{ e.preventDefault(); doUndo(); }}
+            else if (key === 'y' || key === 'ㅛ' || code === 'KeyY') {{ e.preventDefault(); doRedo(); }}
         }}
-    }});
-
-    window.addEventListener('keyup', (e) => {{
-        const key = e.key ? e.key.toLowerCase() : '';
-        const code = e.code;
-        if (key === 'z' || key === 'ㅋ' || code === 'KeyZ') {{
-            zKeyActive = false;
-            clearTimeout(zTimeout);
-            clearInterval(zInterval);
-        }}
-        if (key === 'y' || key === 'ㅛ' || code === 'KeyY') {{
-            yKeyActive = false;
-            clearTimeout(yTimeout);
-            clearInterval(yInterval);
-        }}
-    }});
-
-    document.querySelectorAll('.menu-title').forEach(title => {{
-        title.addEventListener('click', (e) => {{
-            const parent = e.target.closest('.menu-item');
-            const dropdown = parent.querySelector('.menu-dropdown');
-            
-            document.querySelectorAll('.menu-dropdown').forEach(dd => {{
-                if (dd !== dropdown) dd.classList.remove('show');
-            }});
-            
-            dropdown.classList.toggle('show');
-            e.stopPropagation();
-        }});
-    }});
-    document.addEventListener('click', () => {{
-        document.querySelectorAll('.menu-dropdown').forEach(dd => dd.classList.remove('show'));
-    }});
-
-    document.getElementById('menu-save').addEventListener('click', executeSave);
-    document.getElementById('menu-load').addEventListener('click', () => document.getElementById('file-input').click());
-    
-    document.getElementById('menu-undo').addEventListener('click', (e) => {{
-        if(!e.currentTarget.classList.contains('disabled')) doUndo();
-    }});
-    document.getElementById('menu-redo').addEventListener('click', (e) => {{
-        if(!e.currentTarget.classList.contains('disabled')) doRedo();
-    }});
-
-    document.getElementById('menu-reset-screen').addEventListener('click', () => {{
-        if (appData.screen_position.x !== initialData.screen_position.x || 
-            appData.screen_position.y !== initialData.screen_position.y) {{
-            appData.screen_position.x = initialData.screen_position.x;
-            appData.screen_position.y = initialData.screen_position.y;
-            updateViewBox();
-            isDirty = true;
-            pushHistory();
-        }}
-    }});
-
-    document.getElementById('menu-reset-nodes').addEventListener('click', () => {{
-        let changed = false;
-        appData.nodes.forEach(node => {{
-            const initNode = initialData.nodes.find(n => n.id === node.id);
-            if (initNode && (node.position.x !== initNode.position.x || node.position.y !== initNode.position.y)) {{
-                node.position.x = initNode.position.x;
-                node.position.y = initNode.position.y;
-                changed = true;
-            }}
-        }});
-        if (changed) {{
-            renderNetwork();
-            isDirty = true;
-            pushHistory();
-        }}
-    }});
-
-    document.getElementById('menu-reset-all').addEventListener('click', () => {{
-        let changed = false;
-        if (appData.screen_position.x !== initialData.screen_position.x || 
-            appData.screen_position.y !== initialData.screen_position.y) {{
-            appData.screen_position.x = initialData.screen_position.x;
-            appData.screen_position.y = initialData.screen_position.y;
-            changed = true;
-        }}
-        appData.nodes.forEach(node => {{
-            const initNode = initialData.nodes.find(n => n.id === node.id);
-            if (initNode && (node.position.x !== initNode.position.x || node.position.y !== initNode.position.y)) {{
-                node.position.x = initNode.position.x;
-                node.position.y = initNode.position.y;
-                changed = true;
-            }}
-        }});
-        if (changed) {{
-            updateViewBox();
-            renderNetwork();
-            isDirty = true;
-            pushHistory();
-        }}
-    }});
-
-    document.getElementById('file-input').addEventListener('change', (e) => {{
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {{
-            try {{
-                appData = JSON.parse(ev.target.result);
-                initialData = JSON.parse(JSON.stringify(appData));
-                isDirty = false;
-                
-                historyStack = [];
-                historyIndex = -1;
-                pushHistory();
-                
-                initData();
-                renderNetwork();
-                updateViewBox();
-            }} catch(err) {{
-                alert('파일을 불러오는데 실패했습니다. 올바른 JSON 파일인지 확인하세요.');
-            }}
-        }};
-        reader.readAsText(file);
-        e.target.value = ""; 
     }});
 
     let nationMap = {{}};
@@ -708,7 +444,6 @@ html_code = f"""
             nationMap[n.id] = n;
             activeNations.add(n.id);
         }});
-        
         parsedEdges = [];
         appData.nodes.forEach(node => {{
             (node.results || []).forEach(targetId => {{
@@ -720,19 +455,10 @@ html_code = f"""
     function updateViewBox() {{
         const rect = svg.parentElement.getBoundingClientRect();
         if (rect.width === 0 || rect.height === 0) return;
-        
-        let currentX = appData.screen_position.x;
-        let currentY = appData.screen_position.y;
-        
-        const maxX = appData.map_size.x - rect.width;
-        const maxY = appData.map_size.y - rect.height;
-        
-        currentX = Math.max(0, Math.min(currentX, maxX));
-        currentY = Math.max(0, Math.min(currentY, maxY));
-        
+        let currentX = Math.max(0, Math.min(appData.screen_position.x, appData.map_size.x - rect.width));
+        let currentY = Math.max(0, Math.min(appData.screen_position.y, appData.map_size.y - rect.height));
         appData.screen_position.x = currentX;
         appData.screen_position.y = currentY;
-        
         svg.setAttribute('viewBox', `${{appData.screen_position.x}} ${{appData.screen_position.y}} ${{rect.width}} ${{rect.height}}`);
     }}
     window.addEventListener('resize', updateViewBox);
@@ -740,7 +466,6 @@ html_code = f"""
     function createPieSlices(g, nationIds, radius) {{
         const sortedIds = [...nationIds].sort((a, b) => a - b);
         const count = sortedIds.length;
-
         if (count === 1) {{
             const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             circle.setAttribute('r', radius);
@@ -755,19 +480,15 @@ html_code = f"""
                 const y1 = radius * Math.sin(startAngle);
                 const x2 = radius * Math.cos(endAngle);
                 const y2 = radius * Math.sin(endAngle);
-
                 const largeArcFlag = angleStep > Math.PI ? 1 : 0;
                 const pathData = `M 0 0 L ${{x1}} ${{y1}} A ${{radius}} ${{radius}} 0 ${{largeArcFlag}} 1 ${{x2}} ${{y2}} Z`;
-                
                 const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 path.setAttribute('d', pathData);
                 path.setAttribute('fill', nationMap[sortedIds[i]] ? nationMap[sortedIds[i]].color : '#95a5a6');
-                
                 g.appendChild(path);
                 startAngle = endAngle;
             }}
         }}
-
         const borderCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         borderCircle.setAttribute('r', radius);
         borderCircle.setAttribute('class', 'node-border');
@@ -796,6 +517,12 @@ html_code = f"""
                     activeNations.add(nItem.id);
                     item.classList.remove('inactive');
                 }}
+                
+                // ★ 필터 변경 시 활성화된 국가 ID 배열을 Python으로 송신 ★
+                if (window.Streamlit) {{
+                    window.Streamlit.setComponentValue(Array.from(activeNations));
+                }}
+                
                 updateFilters();
             }});
             filterContainer.appendChild(item);
@@ -838,7 +565,6 @@ html_code = f"""
             nodesLayer.appendChild(g);
             
             nodeElements[node.id] = g;
-
             g.addEventListener('mousedown', (e) => startDrag(e, node));
         }});
         updateFilters();
@@ -848,19 +574,21 @@ html_code = f"""
         appData.nodes.forEach(node => {{
             const isActive = node.nations.some(id => activeNations.has(id));
             const g = nodeElements[node.id];
-            if (isActive) {{
-                g.classList.remove('dimmed');
-            }} else {{
-                g.classList.add('dimmed');
-                if (sidePanel.classList.contains('open') && document.getElementById('panel-title').textContent === node.name) {{
-                    closeSidebar();
+            if (g) {{
+                if (isActive) {{
+                    g.classList.remove('dimmed');
+                }} else {{
+                    g.classList.add('dimmed');
+                    if (sidePanel.classList.contains('open') && document.getElementById('panel-title').textContent === node.name) {{
+                        closeSidebar();
+                    }}
                 }}
             }}
         }});
         
         edgeElements.forEach(e => {{
-            const sourceDimmed = nodeElements[e.source.id].classList.contains('dimmed');
-            const targetDimmed = nodeElements[e.target.id].classList.contains('dimmed');
+            const sourceDimmed = nodeElements[e.source.id] ? nodeElements[e.source.id].classList.contains('dimmed') : false;
+            const targetDimmed = nodeElements[e.target.id] ? nodeElements[e.target.id].classList.contains('dimmed') : false;
             if (!sourceDimmed && !targetDimmed) e.line.classList.remove('dimmed');
             else e.line.classList.add('dimmed');
         }});
@@ -889,17 +617,15 @@ html_code = f"""
         e.preventDefault();
         const pt = getSVGPoint(e);
         draggedNode = node;
-        nodeMoved = false;
         isSignificantDrag = false;
-        
         dragStartX = pt.x;
         dragStartY = pt.y;
-        origNodeX = node.position.x;
-        origNodeY = node.position.y;
         offsetX = pt.x - node.position.x;
         offsetY = pt.y - node.position.y;
         
-        nodeElements[node.id].classList.add('hover-active');
+        if (nodeElements[node.id]) {{
+            nodeElements[node.id].classList.add('hover-active');
+        }}
         isMapFocused = true;
         window.focus();
         e.stopPropagation();
@@ -907,39 +633,31 @@ html_code = f"""
 
     borderedBox.addEventListener('mousemove', (e) => {{
         if (e.buttons === 0 || !isMapFocused) {{
-            if (draggedNode || isPanning) {{
-                handleDragInterrupt();
-            }}
+            if (draggedNode || isPanning) handleDragInterrupt();
             return;
         }}
 
         if (draggedNode) {{
             const pt = getSVGPoint(e);
-            
             const dx = pt.x - dragStartX;
             const dy = pt.y - dragStartY;
             
             if (!isSignificantDrag) {{
                 if (Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {{
                     isSignificantDrag = true;
-                    isDirty = true;
                 }} else {{
                     return; 
                 }}
             }}
             
-            nodeMoved = true;
-            
-            let newX = pt.x - offsetX;
-            let newY = pt.y - offsetY;
-            
-            const limit = 50;
-            newX = Math.max(limit, Math.min(newX, appData.map_size.x - limit));
-            newY = Math.max(limit, Math.min(newY, appData.map_size.y - limit));
+            let newX = Math.max(50, Math.min(pt.x - offsetX, appData.map_size.x - 50));
+            let newY = Math.max(50, Math.min(pt.y - offsetY, appData.map_size.y - 50));
             
             draggedNode.position.x = newX;
             draggedNode.position.y = newY;
-            nodeElements[draggedNode.id].setAttribute('transform', `translate(${{draggedNode.position.x}}, ${{draggedNode.position.y}})`);
+            if (nodeElements[draggedNode.id]) {{
+                nodeElements[draggedNode.id].setAttribute('transform', `translate(${{draggedNode.position.x}}, ${{draggedNode.position.y}})`);
+            }}
             
             edgeElements.forEach(edge => {{
                 if (edge.source.id === draggedNode.id || edge.target.id === draggedNode.id) {{
@@ -950,40 +668,23 @@ html_code = f"""
                 }}
             }});
         }} else if (isPanning) {{
-            const dx = e.clientX - panStartX;
-            const dy = e.clientY - panStartY;
-            
-            let newX = panStartScreenX - dx;
-            let newY = panStartScreenY - dy;
-            
-            appData.screen_position.x = newX;
-            appData.screen_position.y = newY;
+            appData.screen_position.x = panStartScreenX - (e.clientX - panStartX);
+            appData.screen_position.y = panStartScreenY - (e.clientY - panStartY);
             updateViewBox();
         }}
     }});
 
-    function endDrag() {{
+    borderedBox.addEventListener('mouseup', () => {{
         if (draggedNode) {{
-            if (isSignificantDrag) {{
-                pushHistory();
-            }} else {{
-                openSidebar(draggedNode);
-            }}
-            
+            if (isSignificantDrag) pushHistory();
+            else openSidebar(draggedNode);
             draggedNode = null;
-            nodeMoved = false;
             isSignificantDrag = false;
-            
-            checkNodeHover();
         }}
-    }}
+    }});
 
-    borderedBox.addEventListener('mouseup', endDrag);
-    
     svg.addEventListener('click', (e) => {{
-        if (!e.target.closest('.node')) {{
-            closeSidebar();
-        }}
+        if (!e.target.closest('.node')) closeSidebar();
     }});
 
     window.openSidebarById = function(nodeId) {{
@@ -1020,9 +721,7 @@ html_code = f"""
             stripe.style.background = nationMap[sortedIds[0]].color;
         }} else {{
             const step = 100 / sortedIds.length;
-            const colorStops = sortedIds.map((id, idx) => {{
-                return `${{nationMap[id].color}} ${{(idx * step).toFixed(2)}}% ${{((idx + 1) * step).toFixed(2)}}%`;
-            }});
+            const colorStops = sortedIds.map((id, idx) => `${{nationMap[id].color}} ${{(idx * step).toFixed(2)}}% ${{((idx + 1) * step).toFixed(2)}}%`);
             stripe.style.background = `linear-gradient(to bottom, ${{colorStops.join(', ')}})`;
         }}
 
@@ -1051,14 +750,32 @@ html_code = f"""
     }}
     document.getElementById('close-btn').addEventListener('click', closeSidebar);
 
+    document.getElementById('menu-save').addEventListener('click', executeSave);
+    document.getElementById('menu-load').addEventListener('click', () => document.getElementById('file-input').click());
+    document.getElementById('menu-undo').addEventListener('click', (e) => {{ if(!e.currentTarget.classList.contains('disabled')) doUndo(); }});
+    document.getElementById('menu-redo').addEventListener('click', (e) => {{ if(!e.currentTarget.classList.contains('disabled')) doRedo(); }});
+
     initData();
     pushHistory();
     renderNetwork();
     updateViewBox();
 
+    // Streamlit Component 초기화 처리
+    if (window.Streamlit) {{
+        window.Streamlit.setComponentReady();
+    }}
 </script>
 </body>
 </html>
 """
 
-components.html(html_code, height=900, scrolling=False)
+# ==========================================
+# 4. Custom Component 렌더링 및 Python 데이터 수신
+# ==========================================
+# 기존 HTML/CSS 디자인 필터 칩을 클릭했을 때 전달되는 활성화 국가 ID 수신
+active_nation_ids = components.html(html_code, height=900, scrolling=False)
+
+# Python 측 수신 상태 확인
+if active_nation_ids is not None:
+    st.session_state['active_nations'] = active_nation_ids
+    st.write("🐍 **[Python 백엔드 수신]** 활성화된 국가 ID 목록:", st.session_state['active_nations'])
