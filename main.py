@@ -846,14 +846,16 @@ html_code = f"""
         return pt.matrixTransform(svg.getScreenCTM().inverse());
     }}
     
-    // 배경(화면) 드래그 시작
+    // 배경(화면) 드래그 시작 [조건 2, 3 반영]
     svg.addEventListener('mousedown', (e) => {{
+        if (e.button !== 0) return; // 마우스 좌클릭만 허용
         if (!e.target.closest('.node')) {{
             isPanning = true;
             panStartX = e.clientX;
             panStartY = e.clientY;
             panStartScreenX = appData.screen_position.x;
             panStartScreenY = appData.screen_position.y;
+            e.preventDefault(); // 텍스트 선택 등 브라우저 기본 동작 방지
         }}
     }});
 
@@ -875,8 +877,16 @@ html_code = f"""
         e.stopPropagation();
     }}
 
-    // 마우스 이동 처리 (노드 드래그 및 화면 패닝)
+    // 마우스 이동 처리 (노드 드래그 및 화면 패닝) [조건 1, 2, 3 반영]
     borderedBox.addEventListener('mousemove', (e) => {{
+        // 마우스 버튼이 떼어졌거나(0) 영역의 포커스를 잃은 경우 즉시 드래그 해제
+        if (e.buttons === 0 || !isMapFocused) {{
+            if (draggedNode || isPanning) {{
+                handleDragInterrupt();
+            }}
+            return;
+        }}
+
         if (draggedNode) {{
             const pt = getSVGPoint(e);
             
@@ -888,8 +898,17 @@ html_code = f"""
             }}
             
             nodeMoved = true;
-            draggedNode.position.x = pt.x - offsetX;
-            draggedNode.position.y = pt.y - offsetY;
+            
+            let newX = pt.x - offsetX;
+            let newY = pt.y - offsetY;
+            
+            // 경계를 기준으로 안쪽 50만큼의 범위 제한
+            const limit = 50;
+            newX = Math.max(limit, Math.min(newX, appData.map_size.x - limit));
+            newY = Math.max(limit, Math.min(newY, appData.map_size.y - limit));
+            
+            draggedNode.position.x = newX;
+            draggedNode.position.y = newY;
             nodeElements[draggedNode.id].setAttribute('transform', `translate(${{draggedNode.position.x}}, ${{draggedNode.position.y}})`);
             
             edgeElements.forEach(edge => {{
