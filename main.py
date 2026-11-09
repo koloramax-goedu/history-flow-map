@@ -319,7 +319,6 @@ html_code = f"""
 <script>
     let appData = {json.dumps(events_data)};
     let isDirty = false;
-    let justDragged = false;
     
     let isMapFocused = false;
     const borderedBox = document.getElementById('bordered-box');
@@ -339,7 +338,7 @@ html_code = f"""
         endDrag();
     }});
 
-    // 글로벌 마우스 상태 추적 (창 전환 시 Hover 유지 기능)
+    // 글로벌 마우스 상태 추적
     let globalMouseX = -1;
     let globalMouseY = -1;
     let globalMouseDown = false;
@@ -367,12 +366,22 @@ html_code = f"""
 
     window.addEventListener('mouseout', (e) => {{
         if (e.relatedTarget === null) {{
-            document.querySelectorAll('.node').forEach(n => n.classList.remove('hover-active'));
+            document.querySelectorAll('.node').forEach(n => {{
+                // 드래그 중인 노드는 제외
+                if (draggedNode && nodeElements[draggedNode.id] === n) return;
+                n.classList.remove('hover-active');
+            }});
         }}
     }});
 
     function checkNodeHover() {{
-        document.querySelectorAll('.node').forEach(n => n.classList.remove('hover-active'));
+        document.querySelectorAll('.node').forEach(n => {{
+            // 드래그 중이거나 미세 클릭 판정 대기 중인 노드의 외곽선 유지를 위해 생략
+            if (draggedNode && nodeElements[draggedNode.id] === n) return;
+            n.classList.remove('hover-active');
+        }});
+        
+        // 클릭/드래그가 시작된 상태면 새로운 hover 상태 탐지 중단
         if (globalMouseDown || globalMouseX < 0 || globalMouseY < 0) return;
         
         const el = document.elementFromPoint(globalMouseX, globalMouseY);
@@ -694,16 +703,6 @@ html_code = f"""
             nodeElements[node.id] = g;
 
             g.addEventListener('mousedown', (e) => startDrag(e, node));
-            
-            g.addEventListener('click', (e) => {{
-                // 드래그 직후에 발생하는 클릭 무시
-                if (justDragged) {{
-                    e.stopPropagation();
-                    return;
-                }}
-                openSidebar(node);
-                e.stopPropagation();
-            }});
         }});
         updateFilters();
     }}
@@ -741,21 +740,42 @@ html_code = f"""
     let offsetX = 0, offsetY = 0;
     let nodeMoved = false;
 
+    // 미세 움직임 판별 및 복귀를 위한 변수
+    let dragStartX = 0, dragStartY = 0;
+    let origNodeX = 0, origNodeY = 0;
+    let isSignificantDrag = false;
+    const DRAG_THRESHOLD = 5;
+
     function startDrag(e, node) {{
         e.preventDefault();
         const pt = getSVGPoint(e);
         draggedNode = node;
         nodeMoved = false;
+        isSignificantDrag = false;
+        
+        dragStartX = pt.x;
+        dragStartY = pt.y;
+        origNodeX = node.position.x;
+        origNodeY = node.position.y;
         offsetX = pt.x - node.position.x;
         offsetY = pt.y - node.position.y;
+        
+        nodeElements[node.id].classList.add('hover-active');
         e.stopPropagation();
     }}
 
     svg.addEventListener('mousemove', (e) => {{
         if (draggedNode) {{
-            isDirty = true;
-            nodeMoved = true;
             const pt = getSVGPoint(e);
+            
+            const dx = pt.x - dragStartX;
+            const dy = pt.y - dragStartY;
+            if (Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {{
+                isSignificantDrag = true;
+                isDirty = true;
+            }}
+            
+            nodeMoved = true;
             draggedNode.position.x = pt.x - offsetX;
             draggedNode.position.y = pt.y - offsetY;
             nodeElements[draggedNode.id].setAttribute('transform', `translate(${{draggedNode.position.x}}, ${{draggedNode.position.y}})`);
@@ -772,15 +792,35 @@ html_code = f"""
     }});
 
     function endDrag() {{
-        if (draggedNode && nodeMoved) {{
-            pushHistory();
-            // 드래그가 끝났음을 알리는 플래그를 설정 (클릭 이벤트 방지)
-            justDragged = true;
-            setTimeout(() => {{ justDragged = false; }}, 50);
+        if (draggedNode) {{
+            if (nodeMoved && isSignificantDrag) {{
+                // 유의미한 드래그 발생 시 내역 저장
+                pushHistory();
+            }} else {{
+                // 미세한 움직임이거나 움직임이 없을 때 사이드바 오픈 (클릭 처리)
+                if (nodeMoved) {{
+                    // 미세한 움직임으로 인한 위치 변경은 완전히 무효화 (실행 취소에 기록 안 함)
+                    draggedNode.position.x = origNodeX;
+                    draggedNode.position.y = origNodeY;
+                    nodeElements[draggedNode.id].setAttribute('transform', `translate(${{origNodeX}}, ${{origNodeY}})`);
+                    edgeElements.forEach(edge => {{
+                        if (edge.source.id === draggedNode.id || edge.target.id === draggedNode.id) {{
+                            edge.line.setAttribute('x1', edge.source.position.x);
+                            edge.line.setAttribute('y1', edge.source.position.y);
+                            edge.line.setAttribute('x2', edge.target.position.x);
+                            edge.line.setAttribute('y2', edge.target.position.y);
+                        }}
+                    }});
+                }}
+                openSidebar(draggedNode);
+            }}
+            
+            draggedNode = null;
+            nodeMoved = false;
+            isSignificantDrag = false;
+            
+            checkNodeHover(); // 마우스를 놓았을 때 Hover 상태 갱신
         }}
-        draggedNode = null;
-        nodeMoved = false;
-        checkNodeHover(); // 마우스를 놓았을 때 Hover 상태 갱신
     }}
 
     svg.addEventListener('mouseup', endDrag);
