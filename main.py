@@ -104,13 +104,6 @@ html_code = f"""
             border: 1px solid #000000;
             border-radius: 8px; overflow: hidden;
             position: relative; background-color: #ffffff;
-            transition: outline 0.2s ease;
-        }}
-        
-        /* 제목과 메뉴 부분을 포함하는 전체 영역 포커스 효과 */
-        #bordered-box.focused {{
-            outline: 2px solid #0984e3;
-            outline-offset: -2px;
         }}
 
         #title-area {{
@@ -188,11 +181,14 @@ html_code = f"""
         .node {{ cursor: grab; transition: opacity 0.3s; }}
         .node:active {{ cursor: grabbing; }}
         .node.dimmed {{ opacity: 0.15; pointer-events: none; }}
+        
         .node .node-border {{
             stroke: #fff; stroke-width: 3px; fill: none;
             transition: stroke-width 0.2s, stroke 0.2s;
         }}
-        .node:hover .node-border {{ stroke-width: 5px; stroke: #333; }}
+        /* 마우스 클릭 여부 및 포커스와 독립적으로 작동하는 자바스크립트 제어 Hover 클래스 */
+        .node.hover-active .node-border {{ stroke-width: 5px; stroke: #333; }}
+        
         .node text {{
             font-size: 14px; font-weight: bold;
             pointer-events: none; text-anchor: middle; fill: #2d3436;
@@ -318,43 +314,79 @@ html_code = f"""
     </div>
 </div>
 
-<!-- 숨겨진 파일 업로드 인풋 -->
 <input type="file" id="file-input" accept=".json" style="display: none;">
 
 <script>
     let appData = {json.dumps(events_data)};
     let isDirty = false;
+    let justDragged = false;
     
-    // 포커스 상태 관리 변수
     let isMapFocused = false;
     const borderedBox = document.getElementById('bordered-box');
 
-    // 앱 영역 전체(제목/메뉴 포함) 클릭 시 포커스 획득
     borderedBox.addEventListener('mousedown', () => {{
         isMapFocused = true;
-        borderedBox.classList.add('focused');
     }});
 
-    // 앱 영역 외부 클릭 시 포커스 해제
     document.addEventListener('mousedown', (e) => {{
         if (!borderedBox.contains(e.target)) {{
             isMapFocused = false;
-            borderedBox.classList.remove('focused');
         }}
     }});
 
-    // 브라우저 탭/창 전환 시 포커스 해제 및 드래그 풀림
     window.addEventListener('blur', () => {{
         isMapFocused = false;
-        borderedBox.classList.remove('focused');
         endDrag();
     }});
 
-    // 히스토리 (실행 취소/다시 실행) 관리를 위한 변수
+    // 글로벌 마우스 상태 추적 (창 전환 시 Hover 유지 기능)
+    let globalMouseX = -1;
+    let globalMouseY = -1;
+    let globalMouseDown = false;
+
+    window.addEventListener('mousemove', (e) => {{
+        globalMouseX = e.clientX;
+        globalMouseY = e.clientY;
+        globalMouseDown = (e.buttons > 0);
+        checkNodeHover();
+    }});
+
+    window.addEventListener('mousedown', () => {{
+        globalMouseDown = true;
+        checkNodeHover();
+    }});
+
+    window.addEventListener('mouseup', () => {{
+        globalMouseDown = false;
+        checkNodeHover();
+    }});
+
+    window.addEventListener('focus', () => {{
+        checkNodeHover();
+    }});
+
+    window.addEventListener('mouseout', (e) => {{
+        if (e.relatedTarget === null) {{
+            document.querySelectorAll('.node').forEach(n => n.classList.remove('hover-active'));
+        }}
+    }});
+
+    function checkNodeHover() {{
+        document.querySelectorAll('.node').forEach(n => n.classList.remove('hover-active'));
+        if (globalMouseDown || globalMouseX < 0 || globalMouseY < 0) return;
+        
+        const el = document.elementFromPoint(globalMouseX, globalMouseY);
+        if (el) {{
+            const node = el.closest('.node');
+            if (node && !node.classList.contains('dimmed')) {{
+                node.classList.add('hover-active');
+            }}
+        }}
+    }}
+
     let historyStack = [];
     let historyIndex = -1;
 
-    // 현재 상태를 히스토리 스택에 저장
     function pushHistory() {{
         if (historyIndex < historyStack.length - 1) {{
             historyStack = historyStack.slice(0, historyIndex + 1);
@@ -395,7 +427,6 @@ html_code = f"""
         else btnRedo.classList.remove('disabled');
     }}
     
-    // 창 닫힘 방지
     window.addEventListener('beforeunload', (e) => {{
         if (isDirty) {{
             e.preventDefault();
@@ -403,7 +434,6 @@ html_code = f"""
         }}
     }});
 
-    // 단축키 관리 및 쿨타임/연속실행 변수
     let saveCooldown = false;
     let zKeyActive = false;
     let yKeyActive = false;
@@ -423,13 +453,12 @@ html_code = f"""
     }}
 
     window.addEventListener('keydown', (e) => {{
-        // 포커스 상태일 때만 지정된 단축키 실행
         if (!isMapFocused) return;
 
         if (e.ctrlKey) {{
             const key = e.key.toLowerCase();
             if (['s', 'l', 'z', 'y'].includes(key)) {{
-                e.preventDefault(); // 브라우저 기본 동작 차단 (Alt+Tab 등은 영향 받지 않음)
+                e.preventDefault();
 
                 if (key === 's') {{
                     if (!saveCooldown) {{
@@ -477,7 +506,6 @@ html_code = f"""
         }}
     }});
 
-    // 메뉴 바 상호작용
     document.querySelectorAll('.menu-title').forEach(title => {{
         title.addEventListener('click', (e) => {{
             const parent = e.target.closest('.menu-item');
@@ -495,7 +523,6 @@ html_code = f"""
         document.querySelectorAll('.menu-dropdown').forEach(dd => dd.classList.remove('show'));
     }});
 
-    // 메뉴 클릭 기능 연결
     document.getElementById('menu-save').addEventListener('click', executeSave);
     document.getElementById('menu-load').addEventListener('click', () => document.getElementById('file-input').click());
     
@@ -667,7 +694,13 @@ html_code = f"""
             nodeElements[node.id] = g;
 
             g.addEventListener('mousedown', (e) => startDrag(e, node));
+            
             g.addEventListener('click', (e) => {{
+                // 드래그 직후에 발생하는 클릭 무시
+                if (justDragged) {{
+                    e.stopPropagation();
+                    return;
+                }}
                 openSidebar(node);
                 e.stopPropagation();
             }});
@@ -741,9 +774,13 @@ html_code = f"""
     function endDrag() {{
         if (draggedNode && nodeMoved) {{
             pushHistory();
+            // 드래그가 끝났음을 알리는 플래그를 설정 (클릭 이벤트 방지)
+            justDragged = true;
+            setTimeout(() => {{ justDragged = false; }}, 50);
         }}
         draggedNode = null;
         nodeMoved = false;
+        checkNodeHover(); // 마우스를 놓았을 때 Hover 상태 갱신
     }}
 
     svg.addEventListener('mouseup', endDrag);
@@ -815,7 +852,6 @@ html_code = f"""
     }}
     document.getElementById('close-btn').addEventListener('click', closeSidebar);
 
-    // 최초 로딩 시 데이터 세팅 및 히스토리에 초기 상태 저장
     initData();
     pushHistory();
     renderNetwork();
