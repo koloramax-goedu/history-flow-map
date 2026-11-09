@@ -141,7 +141,6 @@ html_code = f"""
         }}
         .menu-dropdown.show {{ display: block; }}
         
-        /* 메뉴 아이템 내 텍스트와 단축키 분리 배치 */
         .dropdown-item {{
             padding: 8px 15px; font-size: 13px;
             color: #2d3436; cursor: pointer; text-align: left;
@@ -149,7 +148,6 @@ html_code = f"""
         }}
         .dropdown-item:hover:not(.disabled) {{ background-color: #f1f2f6; }}
         
-        /* 비활성화, 단축키 텍스트 스타일 추가 */
         .dropdown-item.disabled {{ color: #b2bec3; cursor: default; }}
         .shortcut-text {{ font-size: 11px; color: #a4b0be; user-select: none; pointer-events: none; }}
 
@@ -159,7 +157,15 @@ html_code = f"""
             flex: 1; position: relative;
             overflow: hidden; background-color: #ffffff;
             box-sizing: border-box;
+            transition: outline 0.2s ease;
         }}
+        
+        /* 지도 포커스 상태 시각적 효과 */
+        #network-container.focused {{
+            outline: 2px solid #0984e3;
+            outline-offset: -2px;
+        }}
+
         svg {{ width: 100%; height: 100%; cursor: default; }}
         
         #filter-container {{
@@ -251,11 +257,9 @@ html_code = f"""
                 <div class="menu-item">
                     <div class="menu-title">명령</div>
                     <div class="menu-dropdown">
-                        <!-- 명령 1, 2번에 실행 취소, 다시 실행 추가 -->
+                        <!-- 명령 메뉴에서 불필요한 빈 항목 제거 -->
                         <div class="dropdown-item disabled" id="menu-undo"><span>실행 취소</span><span class="shortcut-text">Ctrl+Z</span></div>
                         <div class="dropdown-item disabled" id="menu-redo"><span>다시 실행</span><span class="shortcut-text">Ctrl+Y</span></div>
-                        <div class="dropdown-item"><span>빈 항목 1</span></div>
-                        <div class="dropdown-item"><span>빈 항목 2</span></div>
                     </div>
                 </div>
                 <div class="menu-item">
@@ -327,13 +331,36 @@ html_code = f"""
     let appData = {json.dumps(events_data)};
     let isDirty = false;
     
+    // 포커스 상태 관리 변수
+    let isMapFocused = false;
+    const networkContainer = document.getElementById('network-container');
+
+    // 지도 영역 클릭 시 포커스 획득
+    networkContainer.addEventListener('mousedown', () => {{
+        isMapFocused = true;
+        networkContainer.classList.add('focused');
+    }});
+
+    // 지도 영역 외부 클릭 시 포커스 해제
+    document.addEventListener('mousedown', (e) => {{
+        if (!networkContainer.contains(e.target)) {{
+            isMapFocused = false;
+            networkContainer.classList.remove('focused');
+        }}
+    }});
+
+    // 브라우저 탭/창 전환 시 포커스 해제
+    window.addEventListener('blur', () => {{
+        isMapFocused = false;
+        networkContainer.classList.remove('focused');
+    }});
+
     // 히스토리 (실행 취소/다시 실행) 관리를 위한 변수
     let historyStack = [];
     let historyIndex = -1;
 
     // 현재 상태를 히스토리 스택에 저장
     function pushHistory() {{
-        // 현재 인덱스 이후의 히스토리는 버림
         if (historyIndex < historyStack.length - 1) {{
             historyStack = historyStack.slice(0, historyIndex + 1);
         }}
@@ -342,7 +369,6 @@ html_code = f"""
         updateUndoRedoMenu();
     }}
 
-    // 실행 취소
     function doUndo() {{
         if (historyIndex > 0) {{
             historyIndex--;
@@ -353,7 +379,6 @@ html_code = f"""
         }}
     }}
 
-    // 다시 실행
     function doRedo() {{
         if (historyIndex < historyStack.length - 1) {{
             historyIndex++;
@@ -364,7 +389,6 @@ html_code = f"""
         }}
     }}
 
-    // 메뉴 항목 비활성화 업데이트
     function updateUndoRedoMenu() {{
         const btnUndo = document.getElementById('menu-undo');
         const btnRedo = document.getElementById('menu-redo');
@@ -391,7 +415,6 @@ html_code = f"""
     let zTimeout = null, zInterval = null;
     let yTimeout = null, yInterval = null;
 
-    // 파일 저장 로직 분리 (메뉴 클릭과 단축키 공용)
     function executeSave() {{
         const dataStr = JSON.stringify(appData, null, 2);
         const blob = new Blob([dataStr], {{ type: "application/json" }});
@@ -405,39 +428,41 @@ html_code = f"""
     }}
 
     window.addEventListener('keydown', (e) => {{
+        // 지도가 포커스 상태일 때만 브라우저 고유 기능 덮어쓰기
+        if (!isMapFocused) return;
+
         if (e.ctrlKey) {{
             const key = e.key.toLowerCase();
-            if (key === 'c') {{
-                e.preventDefault();
-                if (!saveCooldown) {{
-                    executeSave();
-                    saveCooldown = true;
-                    // 단축키 저장은 2초 쿨타임
-                    setTimeout(() => {{ saveCooldown = false; }}, 2000);
+            if (['c', 'l', 'z', 'y'].includes(key)) {{
+                e.preventDefault(); // 브라우저 고유의 단축키 동작 무시
+
+                if (key === 'c') {{
+                    if (!saveCooldown) {{
+                        executeSave();
+                        saveCooldown = true;
+                        setTimeout(() => {{ saveCooldown = false; }}, 2000);
+                    }}
                 }}
-            }}
-            else if (key === 'l') {{
-                e.preventDefault();
-                document.getElementById('file-input').click();
-            }}
-            else if (key === 'z') {{
-                e.preventDefault();
-                if (!zKeyActive) {{
-                    zKeyActive = true;
-                    doUndo();
-                    zTimeout = setTimeout(() => {{
-                        zInterval = setInterval(doUndo, 100);
-                    }}, 300);
+                else if (key === 'l') {{
+                    document.getElementById('file-input').click();
                 }}
-            }}
-            else if (key === 'y') {{
-                e.preventDefault();
-                if (!yKeyActive) {{
-                    yKeyActive = true;
-                    doRedo();
-                    yTimeout = setTimeout(() => {{
-                        yInterval = setInterval(doRedo, 100);
-                    }}, 300);
+                else if (key === 'z') {{
+                    if (!zKeyActive) {{
+                        zKeyActive = true;
+                        doUndo();
+                        zTimeout = setTimeout(() => {{
+                            zInterval = setInterval(doUndo, 100);
+                        }}, 300);
+                    }}
+                }}
+                else if (key === 'y') {{
+                    if (!yKeyActive) {{
+                        yKeyActive = true;
+                        doRedo();
+                        yTimeout = setTimeout(() => {{
+                            yInterval = setInterval(doRedo, 100);
+                        }}, 300);
+                    }}
                 }}
             }}
         }}
@@ -475,7 +500,7 @@ html_code = f"""
         document.querySelectorAll('.menu-dropdown').forEach(dd => dd.classList.remove('show'));
     }});
 
-    // 메뉴 클릭 기능 연결 (저장 메뉴는 쿨타임 무시)
+    // 메뉴 클릭 기능 연결
     document.getElementById('menu-save').addEventListener('click', executeSave);
     document.getElementById('menu-load').addEventListener('click', () => document.getElementById('file-input').click());
     
@@ -495,7 +520,6 @@ html_code = f"""
                 appData = JSON.parse(ev.target.result);
                 isDirty = false;
                 
-                // 파일 불러오기 시 히스토리 스택 초기화
                 historyStack = [];
                 historyIndex = -1;
                 pushHistory();
@@ -647,6 +671,7 @@ html_code = f"""
             
             nodeElements[node.id] = g;
 
+            // 노드 밖에서 클릭한 후 드래그 시 아무 일도 없도록 마우스 다운 이벤트 설정
             g.addEventListener('mousedown', (e) => startDrag(e, node));
             g.addEventListener('click', (e) => {{
                 openSidebar(node);
@@ -690,6 +715,8 @@ html_code = f"""
     let nodeMoved = false;
 
     function startDrag(e, node) {{
+        // 기본 드래그(텍스트 블록 지정 등) 동작 차단
+        e.preventDefault();
         const pt = getSVGPoint(e);
         draggedNode = node;
         nodeMoved = false;
@@ -719,7 +746,6 @@ html_code = f"""
     }});
 
     function endDrag() {{
-        // 위치 변경이 실제로 일어난 경우에만 히스토리 스택에 저장
         if (draggedNode && nodeMoved) {{
             pushHistory();
         }}
@@ -727,6 +753,7 @@ html_code = f"""
         nodeMoved = false;
     }}
 
+    // 마우스 버튼에서 손을 떼거나 커서가 지도 바깥으로 나가면 드래그 종료
     svg.addEventListener('mouseup', endDrag);
     svg.addEventListener('mouseleave', endDrag);
     svg.addEventListener('click', closeSidebar);
