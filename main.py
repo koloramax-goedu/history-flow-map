@@ -8,33 +8,70 @@ import json
 st.set_page_config(page_title="역사적 사건 인과관계 지도", layout="wide")
 
 # ==========================================
-# 2. 역사 사건 데이터 정의 (황산벌 전투에 '당' 추가)
+# 2. 역사 사건 데이터 정의 (요청한 새 데이터 구조 적용)
 # ==========================================
 events_data = {
-    "nodes": [
-        {"id": "1", "title": "성왕의 한강 수복", "year": "551", "nations": "백제, 신라, 고구려", "desc": "백제 성왕이 신라 진흥왕과 연합하여 고구려를 공격, 한강 하류 유역을 수복한 사건입니다.", "x": 100, "y": 150},
-        {"id": "2", "title": "진흥왕의 한강 차지", "year": "553", "nations": "신라, 백제", "desc": "신라 진흥왕이 나제동맹을 깨고 기습적으로 백제를 공격하여 한강 유역을 독차지하고 신주를 설치했습니다.", "x": 300, "y": 150},
-        {"id": "3", "title": "관산성 전투", "year": "554", "nations": "백제, 신라, 대가야", "desc": "신라의 배신에 분노한 백제 성왕이 대가야와 연합하여 신라를 공격했으나, 관산성에서 전사하고 대패한 전투입니다.", "x": 500, "y": 150},
-        {"id": "4", "title": "살수대첩", "year": "612", "nations": "고구려, 수", "desc": "고구려의 을지문덕이 살수(청천강)에서 수나라의 30만 별동대를 크게 물리친 전투입니다.", "x": 100, "y": 350},
-        {"id": "5", "title": "안시성 전투", "year": "645", "nations": "고구려, 당", "desc": "고구려 안시성에서 당나라 태종의 대군을 맞아 약 88일간의 치열한 공방전 끝에 당군을 물리친 전투입니다.", "x": 300, "y": 350},
-        {"id": "6", "title": "나당 동맹 체결", "year": "648", "nations": "신라, 당", "desc": "백제의 잦은 공격으로 위기에 처한 신라(김춘추)가 당나라로 건너가 고구려와 백제를 멸망시키기 위한 군사 동맹을 맺은 사건입니다.", "x": 500, "y": 250},
-        {"id": "7", "title": "황산벌 전투", "year": "660", "nations": "백제, 신라, 당", "desc": "나당 연합군이 백제를 공격하자, 계백 장군이 이끄는 5천 결사대가 황산벌에서 김유신의 5만 신라군에 맞서 싸운 전투입니다.", "x": 700, "y": 150},
-        {"id": "8", "title": "백제 멸망", "year": "660", "nations": "백제, 신라, 당", "desc": "황산벌 전투 패배 후 사비성이 나당 연합군에게 함락되며 의자왕이 항복, 백제가 멸망하게 됩니다.", "x": 900, "y": 150},
-        {"id": "9", "title": "고구려 멸망", "year": "668", "nations": "고구려, 신라, 당", "desc": "오랜 전쟁과 연개소문 사후의 내분으로 국력이 약해진 고구려가 나당 연합군의 공격을 받고 평양성이 함락되며 멸망했습니다.", "x": 900, "y": 350},
-        {"id": "10", "title": "기벌포 해전", "year": "676", "nations": "신라, 당", "desc": "신라가 한반도 전체를 지배하려는 당나라에 맞서 싸운 나당 전쟁의 마지막 전투. 기벌포에서 당의 수군을 궤멸시켜 삼국통일을 완수했습니다.", "x": 1100, "y": 250}
+    "map_size": {"x": 10000, "y": 10000},
+    "screen_position": {"x": 5000, "y": 5000},
+    "nations": [
+        {"id": 1, "name": "고구려", "color": "#27ae60"},
+        {"id": 2, "name": "백제", "color": "#f39c12"},
+        {"id": 3, "name": "신라", "color": "#2980b9"},
+        {"id": 4, "name": "당", "color": "#c0392b"},
+        {"id": 5, "name": "수", "color": "#8e44ad"},
+        {"id": 6, "name": "대가야", "color": "#7f8c8d"}
     ],
-    "edges": [
-        {"source": "1", "target": "2"},
-        {"source": "2", "target": "3"},
-        {"source": "3", "target": "6"},
-        {"source": "4", "target": "5"},
-        {"source": "5", "target": "6"},
-        {"source": "6", "target": "7"},
-        {"source": "7", "target": "8"},
-        {"source": "6", "target": "9"},
-        {"source": "8", "target": "9"},
-        {"source": "8", "target": "10"},
-        {"source": "9", "target": "10"}
+    "nodes": [
+        {
+            "id": 1, "name": "성왕의 한강 수복", "position": {"x": 5100, "y": 5150}, "year": 551,
+            "description": "백제 성왕이 신라 진흥왕과 연합하여 고구려를 공격, 한강 하류 유역을 수복한 사건입니다.",
+            "causes": [], "results": [2], "nations": [1, 2, 3]
+        },
+        {
+            "id": 2, "name": "진흥왕의 한강 차지", "position": {"x": 5300, "y": 5150}, "year": 553,
+            "description": "신라 진흥왕이 나제동맹을 깨고 기습적으로 백제를 공격하여 한강 유역을 독차지하고 신주를 설치했습니다.",
+            "causes": [1], "results": [3], "nations": [2, 3]
+        },
+        {
+            "id": 3, "name": "관산성 전투", "position": {"x": 5500, "y": 5150}, "year": 554,
+            "description": "신라의 배신에 분노한 백제 성왕이 대가야와 연합하여 신라를 공격했으나, 관산성에서 전사하고 대패한 전투입니다.",
+            "causes": [2], "results": [6], "nations": [2, 3, 6]
+        },
+        {
+            "id": 4, "name": "살수대첩", "position": {"x": 5100, "y": 5350}, "year": 612,
+            "description": "고구려의 을지문덕이 살수(청천강)에서 수나라의 30만 별동대를 크게 물리친 전투입니다.",
+            "causes": [], "results": [5], "nations": [1, 5]
+        },
+        {
+            "id": 5, "name": "안시성 전투", "position": {"x": 5300, "y": 5350}, "year": 645,
+            "description": "고구려 안시성에서 당나라 태종의 대군을 맞아 약 88일간의 치열한 공방전 끝에 당군을 물리친 전투입니다.",
+            "causes": [4], "results": [6], "nations": [1, 4]
+        },
+        {
+            "id": 6, "name": "나당 동맹 체결", "position": {"x": 5500, "y": 5250}, "year": 648,
+            "description": "백제의 잦은 공격으로 위기에 처한 신라(김춘추)가 당나라로 건너가 고구려와 백제를 멸망시키기 위한 군사 동맹을 맺은 사건입니다.",
+            "causes": [3, 5], "results": [7, 9], "nations": [3, 4]
+        },
+        {
+            "id": 7, "name": "황산벌 전투", "position": {"x": 5700, "y": 5150}, "year": 660,
+            "description": "나당 연합군이 백제를 공격하자, 계백 장군이 이끄는 5천 결사대가 황산벌에서 김유신의 5만 신라군에 맞서 싸운 전투입니다.",
+            "causes": [6], "results": [8], "nations": [2, 3, 4]
+        },
+        {
+            "id": 8, "name": "백제 멸망", "position": {"x": 5900, "y": 5150}, "year": 660,
+            "description": "황산벌 전투 패배 후 사비성이 나당 연합군에게 함락되며 의자왕이 항복, 백제가 멸망하게 됩니다.",
+            "causes": [7], "results": [9, 10], "nations": [2, 3, 4]
+        },
+        {
+            "id": 9, "name": "고구려 멸망", "position": {"x": 5900, "y": 5350}, "year": 668,
+            "description": "오랜 전쟁과 연개소문 사후의 내분으로 국력이 약해진 고구려가 나당 연합군의 공격을 받고 평양성이 함락되며 멸망했습니다.",
+            "causes": [6, 8], "results": [10], "nations": [1, 3, 4]
+        },
+        {
+            "id": 10, "name": "기벌포 해전", "position": {"x": 6100, "y": 5250}, "year": 676,
+            "description": "신라가 한반도 전체를 지배하려는 당나라에 맞서 싸운 나당 전쟁의 마지막 전투. 기벌포에서 당의 수군을 궤멸시켜 삼국통일을 완수했습니다.",
+            "causes": [8, 9], "results": [], "nations": [3, 4]
+        }
     ]
 }
 
@@ -48,308 +85,161 @@ html_code = f"""
     <meta charset="utf-8">
     <style>
         body {{
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             font-family: 'Malgun Gothic', sans-serif;
             overflow: hidden;
             background-color: #ffffff;
             height: 100vh;
         }}
         #map-container {{
-            display: flex;
-            flex-direction: column;
-            width: 100vw;
-            height: 100vh;
+            display: flex; flex-direction: column;
+            width: 100vw; height: 100vh;
             background-color: #ffffff;
-            padding: 15px;
-            box-sizing: border-box;
+            padding: 15px; box-sizing: border-box;
             overflow: hidden;
         }}
-        
         #bordered-box {{
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            height: 100%;
+            display: flex; flex-direction: column;
+            width: 100%; height: 100%;
             border: 1px solid #000000;
-            border-radius: 8px;
-            overflow: hidden;
-            position: relative;
-            background-color: #ffffff;
+            border-radius: 8px; overflow: hidden;
+            position: relative; background-color: #ffffff;
         }}
-        
         #title-area {{
-            flex: 0 0 55px;
-            width: 100%;
+            flex: 0 0 55px; width: 100%;
             background-color: #ffffff;
-            display: flex;
-            justify-content: flex-start;
-            align-items: center;
-            gap: 20px;
-            padding: 0 20px;
-            box-sizing: border-box;
+            display: flex; justify-content: flex-start;
+            align-items: center; gap: 20px;
+            padding: 0 20px; box-sizing: border-box;
             z-index: 30;
         }}
         #main-title {{
-            font-size: 24px;
-            font-weight: 900;
-            color: #2d3436;
-            margin: 0;
-            white-space: nowrap;
+            font-size: 24px; font-weight: 900;
+            color: #2d3436; margin: 0; white-space: nowrap;
         }}
-
         #menu-bar {{
-            background-color: #f1f2f6;
-            border: 1px solid #dfe6e9;
-            display: flex;
-            align-items: center;
-            padding: 0 10px;
-            height: 38px;
-            border-radius: 20px;
-            width: max-content;
+            background-color: #f1f2f6; border: 1px solid #dfe6e9;
+            display: flex; align-items: center;
+            padding: 0 10px; height: 38px;
+            border-radius: 20px; width: max-content;
         }}
-        .menu-item {{
-            position: relative;
-            margin: 0 2px;
-        }}
+        .menu-item {{ position: relative; margin: 0 2px; }}
         .menu-title {{
-            padding: 4px 10px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            color: #2d3436;
-            border-radius: 4px;
+            padding: 4px 10px; cursor: pointer;
+            font-size: 14px; font-weight: bold;
+            color: #2d3436; border-radius: 4px;
             user-select: none;
         }}
-        .menu-title:hover {{
-            background-color: #dfe6e9;
-        }}
+        .menu-title:hover {{ background-color: #dfe6e9; }}
         .menu-dropdown {{
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            margin-top: 6px;
-            background-color: #ffffff;
-            min-width: 130px;
+            display: none; position: absolute;
+            top: 100%; left: 0; margin-top: 6px;
+            background-color: #ffffff; min-width: 130px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            border: 1px solid #dfe6e9;
-            border-radius: 6px;
-            padding: 5px 0;
-            z-index: 200;
+            border: 1px solid #dfe6e9; border-radius: 6px;
+            padding: 5px 0; z-index: 200;
         }}
-        .menu-dropdown.show {{
-            display: block;
-        }}
+        .menu-dropdown.show {{ display: block; }}
         .dropdown-item {{
-            padding: 8px 15px;
-            font-size: 13px;
-            color: #2d3436;
-            cursor: pointer;
-            text-align: left;
+            padding: 8px 15px; font-size: 13px;
+            color: #2d3436; cursor: pointer; text-align: left;
         }}
-        .dropdown-item:hover {{
-            background-color: #f1f2f6;
-        }}
+        .dropdown-item:hover {{ background-color: #f1f2f6; }}
 
-        #divider {{
-            width: 100%;
-            height: 2px;
-            background-color: #e2e8f0;
-        }}
+        #divider {{ width: 100%; height: 2px; background-color: #e2e8f0; }}
 
         #network-container {{
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-            background-color: #ffffff;
+            flex: 1; position: relative;
+            overflow: hidden; background-color: #ffffff;
             box-sizing: border-box;
         }}
-        svg {{
-            width: 100%;
-            height: 100%;
-            cursor: grab;
-        }}
-        svg:active {{
-            cursor: grabbing;
-        }}
-
+        svg {{ width: 100%; height: 100%; cursor: default; }}
+        
         #filter-container {{
-            position: absolute;
-            top: 15px;
-            right: 15px;
+            position: absolute; top: 15px; right: 15px;
             background-color: rgba(255, 255, 255, 0.95);
-            border: 1px solid #000000;
-            border-radius: 25px;
-            padding: 8px 20px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            z-index: 20;
+            border: 1px solid #000000; border-radius: 25px;
+            padding: 8px 20px; display: flex;
+            align-items: center; gap: 15px; z-index: 20;
             box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }}
         .filter-item {{
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            color: #2d3436;
-            transition: all 0.2s;
-            user-select: none;
+            display: flex; align-items: center; gap: 6px;
+            cursor: pointer; font-size: 14px; font-weight: bold;
+            color: #2d3436; transition: all 0.2s; user-select: none;
         }}
-        .filter-item.inactive {{
-            opacity: 0.3;
-        }}
-        .color-circle {{
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-        }}
+        .filter-item.inactive {{ opacity: 0.3; }}
+        .color-circle {{ width: 14px; height: 14px; border-radius: 50%; }}
         
-        .node {{
-            cursor: pointer;
-            transition: opacity 0.3s;
-        }}
-        .node.dimmed {{
-            opacity: 0.15;
-            pointer-events: none;
-        }}
+        .node {{ cursor: grab; transition: opacity 0.3s; }}
+        .node:active {{ cursor: grabbing; }}
+        .node.dimmed {{ opacity: 0.15; pointer-events: none; }}
         .node .node-border {{
-            stroke: #fff;
-            stroke-width: 3px;
-            fill: none;
+            stroke: #fff; stroke-width: 3px; fill: none;
             transition: stroke-width 0.2s, stroke 0.2s;
         }}
-        .node:hover .node-border {{
-            stroke-width: 5px;
-            stroke: #333;
-        }}
+        .node:hover .node-border {{ stroke-width: 5px; stroke: #333; }}
         .node text {{
-            font-size: 14px;
-            font-weight: bold;
-            pointer-events: none;
-            text-anchor: middle;
-            fill: #2d3436;
+            font-size: 14px; font-weight: bold;
+            pointer-events: none; text-anchor: middle; fill: #2d3436;
         }}
-        .node text.year {{
-            font-size: 12px;
-            font-weight: normal;
-            fill: #636e72;
-        }}
+        .node text.year {{ font-size: 12px; font-weight: normal; fill: #636e72; }}
         
         .edge {{
-            stroke: #b2bec3;
-            stroke-width: 2.5px;
-            transition: opacity 0.3s, stroke 0.3s; /* 색상 변경을 위한 트랜지션 추가 */
+            stroke: #b2bec3; stroke-width: 2.5px;
+            transition: opacity 0.3s, stroke 0.3s;
         }}
-        .edge.dimmed {{
-            opacity: 0.15;
-        }}
+        .edge.dimmed {{ opacity: 0.15; }}
         
-        /* 오른쪽 세부 정보 탭 (사이드 패널) */
+        /* 오른쪽 세부 정보 탭 */
         #side-panel {{
-            position: absolute;
-            top: 0;
-            right: -450px;
-            width: 400px;
-            height: 100%;
-            background-color: #ffffff;
+            position: absolute; top: 0; right: -450px;
+            width: 400px; height: 100%; background-color: #ffffff;
             box-shadow: -4px 0 15px rgba(0,0,0,0.1);
             transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            padding: 30px 25px 30px 30px;
-            box-sizing: border-box;
-            z-index: 100;
-            overflow-y: auto;
+            padding: 30px 25px 30px 30px; box-sizing: border-box;
+            z-index: 100; overflow-y: auto;
         }}
-        #side-panel.open {{
-            right: 0;
-        }}
-        #panel-stripe {{
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 6px;
-            height: 100%;
-        }}
+        #side-panel.open {{ right: 0; }}
+        #panel-stripe {{ position: absolute; top: 0; left: 0; width: 6px; height: 100%; }}
         #close-btn {{
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: #636e72;
+            position: absolute; top: 15px; right: 15px;
+            background: none; border: none;
+            font-size: 24px; cursor: pointer; color: #636e72;
         }}
-        h2 {{
-            margin-top: 0;
-            color: #2d3436;
-            font-size: 22px;
-            margin-bottom: 10px;
-        }}
+        h2 {{ margin-top: 0; color: #2d3436; font-size: 22px; margin-bottom: 10px; }}
         .badge {{
-            display: inline-block;
-            background: #dfe6e9;
-            color: #2d3436;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 14px;
-            margin-bottom: 20px;
-            font-weight: bold;
+            display: inline-block; background: #dfe6e9; color: #2d3436;
+            padding: 4px 8px; border-radius: 4px;
+            font-size: 14px; margin-bottom: 20px; font-weight: bold;
         }}
         p.desc {{
-            line-height: 1.6;
-            color: #4a4a4a;
-            font-size: 15px;
-            margin-bottom: 25px;
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
+            line-height: 1.6; color: #4a4a4a; font-size: 15px;
+            margin-bottom: 25px; background-color: #f8f9fa;
+            padding: 15px; border-radius: 8px;
         }}
-        
         .info-group {{ margin-bottom: 15px; font-size: 14px; }}
-        .info-label {{
-            font-weight: bold;
-            color: #2d3436;
-            margin-bottom: 5px;
-            display: flex;
-            align-items: center;
-        }}
-        .info-value {{
-            color: #2d3436;
-            padding-left: 10px;
-            line-height: 1.5;
-        }}
+        .info-label {{ font-weight: bold; color: #2d3436; margin-bottom: 5px; display: flex; align-items: center; }}
+        .info-value {{ color: #2d3436; padding-left: 10px; line-height: 1.5; }}
         .event-link {{
-            color: #0984e3;
-            text-decoration: none;
-            cursor: pointer;
-            font-weight: bold;
-            transition: color 0.2s;
+            color: #0984e3; text-decoration: none;
+            cursor: pointer; font-weight: bold; transition: color 0.2s;
         }}
-        .event-link:hover {{
-            color: #74b9ff;
-            text-decoration: underline;
-        }}
+        .event-link:hover {{ color: #74b9ff; text-decoration: underline; }}
     </style>
 </head>
 <body>
 
 <div id="map-container">
     <div id="bordered-box">
-        <!-- 1. 제목 및 메뉴 영역 -->
         <div id="title-area">
             <h1 id="main-title">역사적 사건 인과관계 지도</h1>
-            
             <div id="menu-bar">
                 <div class="menu-item">
                     <div class="menu-title">파일</div>
                     <div class="menu-dropdown">
-                        <div class="dropdown-item">빈 항목 1</div>
-                        <div class="dropdown-item">빈 항목 2</div>
-                        <div class="dropdown-item">빈 항목 3</div>
+                        <div class="dropdown-item" id="menu-save">저장하기</div>
+                        <div class="dropdown-item" id="menu-load">불러오기</div>
                     </div>
                 </div>
                 <div class="menu-item">
@@ -378,23 +268,17 @@ html_code = f"""
 
         <div id="divider"></div>
 
-        <!-- 2. 네트워크 지도 영역 -->
         <div id="network-container">
-            <div id="filter-container">
-                <!-- JS를 통해 동적 생성 -->
-            </div>
-
+            <div id="filter-container"></div>
+            
             <svg id="network">
                 <defs>
-                    <!-- 기본 화살표 마커 -->
                     <marker id="arrow" viewBox="0 -5 10 10" refX="28" refY="0" markerWidth="6" markerHeight="6" orient="auto">
                         <path d="M0,-5L10,0L0,5" fill="#b2bec3"></path>
                     </marker>
-                    <!-- 원인(Incoming) 화살표 마커 (붉은색) -->
                     <marker id="arrow-cause" viewBox="0 -5 10 10" refX="28" refY="0" markerWidth="6" markerHeight="6" orient="auto">
                         <path d="M0,-5L10,0L0,5" fill="#e74c3c"></path>
                     </marker>
-                    <!-- 결과(Outgoing) 화살표 마커 (푸른색) -->
                     <marker id="arrow-result" viewBox="0 -5 10 10" refX="28" refY="0" markerWidth="6" markerHeight="6" orient="auto">
                         <path d="M0,-5L10,0L0,5" fill="#0984e3"></path>
                     </marker>
@@ -403,13 +287,11 @@ html_code = f"""
                 <g id="nodes-layer"></g>
             </svg>
             
-            <!-- 세부 정보 탭 -->
             <div id="side-panel">
                 <div id="panel-stripe"></div>
                 <button id="close-btn">&times;</button>
                 <div class="badge" id="panel-year"></div>
                 <h2 id="panel-title"></h2>
-                
                 <p class="desc" id="panel-desc"></p>
                 
                 <div class="info-group">
@@ -429,7 +311,21 @@ html_code = f"""
     </div>
 </div>
 
+<!-- 숨겨진 파일 업로드 인풋 -->
+<input type="file" id="file-input" accept=".json" style="display: none;">
+
 <script>
+    let appData = {json.dumps(events_data)};
+    let isDirty = false;
+    
+    // 창 닫힘 방지
+    window.addEventListener('beforeunload', (e) => {{
+        if (isDirty) {{
+            e.preventDefault();
+            e.returnValue = '';
+        }}
+    }});
+
     // 메뉴 바 상호작용
     document.querySelectorAll('.menu-title').forEach(title => {{
         title.addEventListener('click', (e) => {{
@@ -444,149 +340,93 @@ html_code = f"""
             e.stopPropagation();
         }});
     }});
-
     document.addEventListener('click', () => {{
-        document.querySelectorAll('.menu-dropdown').forEach(dd => {{
-            dd.classList.remove('show');
-        }});
+        document.querySelectorAll('.menu-dropdown').forEach(dd => dd.classList.remove('show'));
     }});
 
-    const data = {json.dumps(events_data)};
-    
-    // 국가별 1부터 시작하는 ID 및 색상 정의
-    const nationsData = [
-        {{ id: 1, name: "고구려", color: "#27ae60" }},
-        {{ id: 2, name: "백제", color: "#f39c12" }},
-        {{ id: 3, name: "신라", color: "#2980b9" }},
-        {{ id: 4, name: "당", color: "#c0392b" }},
-        {{ id: 5, name: "수", color: "#8e44ad" }},
-        {{ id: 6, name: "대가야", color: "#7f8c8d" }}
-    ];
+    // 로컬 저장 / 불러오기
+    document.getElementById('menu-save').addEventListener('click', () => {{
+        const dataStr = JSON.stringify(appData, null, 2);
+        const blob = new Blob([dataStr], {{ type: "application/json" }});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "history_map.json";
+        a.click();
+        URL.revokeObjectURL(url);
+        isDirty = false;
+    }});
 
-    const nationMap = {{}};
-    nationsData.forEach(n => {{ nationMap[n.name] = n; }});
+    document.getElementById('menu-load').addEventListener('click', () => {{
+        document.getElementById('file-input').click();
+    }});
 
-    // 국가명을 ID 순서대로 정렬하는 헬퍼 함수
-    function getSortedNations(nationsStr) {{
-        const rawList = nationsStr.split(',').map(s => s.trim());
-        return rawList.sort((a, b) => {{
-            const idA = nationMap[a] ? nationMap[a].id : 999;
-            const idB = nationMap[b] ? nationMap[b].id : 999;
-            return idA - idB;
-        }});
-    }}
+    document.getElementById('file-input').addEventListener('change', (e) => {{
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {{
+            try {{
+                appData = JSON.parse(ev.target.result);
+                isDirty = false;
+                initData();
+                renderNetwork();
+                updateViewBox();
+            }} catch(err) {{
+                alert('파일을 불러오는데 실패했습니다. 올바른 JSON 파일인지 확인하세요.');
+            }}
+        }};
+        reader.readAsText(file);
+        e.target.value = ""; // 동일 파일 연속 업로드 허용
+    }});
 
-    const activeNations = new Set(nationsData.map(n => n.name));
+    let nationMap = {{}};
+    let activeNations = new Set();
+    let edgeElements = [];
+    let nodeElements = {{}};
+    let parsedEdges = [];
 
-    const filterContainer = document.getElementById('filter-container');
     const svg = document.getElementById('network');
     const edgesLayer = document.getElementById('edges-layer');
     const nodesLayer = document.getElementById('nodes-layer');
-    
+    const filterContainer = document.getElementById('filter-container');
     const sidePanel = document.getElementById('side-panel');
-    const panelStripe = document.getElementById('panel-stripe');
-    const panelTitle = document.getElementById('panel-title');
-    const panelYear = document.getElementById('panel-year');
-    const panelDesc = document.getElementById('panel-desc');
-    const panelNations = document.getElementById('panel-nations');
-    const panelCauses = document.getElementById('panel-causes');
-    const panelResults = document.getElementById('panel-results');
-    const closeBtn = document.getElementById('close-btn');
 
-    let draggedNode = null;
-    let offsetX = 0;
-    let offsetY = 0;
-
-    const nodeElements = {{}};
-    const edgeElements = [];
-
-    // 필터링 UI 생성
-    nationsData.forEach(nItem => {{
-        const nation = nItem.name;
-        const item = document.createElement('div');
-        item.className = 'filter-item active';
-        
-        item.innerHTML = `
-            <div class="color-circle" style="background-color: ${{nItem.color}};"></div>
-            <span>${{nation}}</span>
-        `;
-        
-        item.addEventListener('click', () => {{
-            if (activeNations.has(nation)) {{
-                activeNations.delete(nation);
-                item.classList.add('inactive');
-            }} else {{
-                activeNations.add(nation);
-                item.classList.remove('inactive');
-            }}
-            updateFilters();
+    function initData() {{
+        nationMap = {{}};
+        activeNations = new Set();
+        appData.nations.forEach(n => {{
+            nationMap[n.id] = n;
+            activeNations.add(n.id);
         }});
         
-        filterContainer.appendChild(item);
-    }});
-
-    function updateFilters() {{
-        data.nodes.forEach(node => {{
-            const nations = node.nations.split(',').map(s => s.trim());
-            const isActive = nations.some(n => activeNations.has(n));
-            
-            const g = nodeElements[node.id];
-            if (isActive) {{
-                g.classList.remove('dimmed');
-            }} else {{
-                g.classList.add('dimmed');
-                if (sidePanel.classList.contains('open') && panelTitle.textContent === node.title) {{
-                    closeSidebar();
-                }}
-            }}
-        }});
-        
-        edgeElements.forEach(e => {{
-            const sourceDimmed = nodeElements[e.source.id].classList.contains('dimmed');
-            const targetDimmed = nodeElements[e.target.id].classList.contains('dimmed');
-            
-            if (!sourceDimmed && !targetDimmed) {{
-                e.line.classList.remove('dimmed');
-            }} else {{
-                e.line.classList.add('dimmed');
-            }}
+        parsedEdges = [];
+        appData.nodes.forEach(node => {{
+            (node.results || []).forEach(targetId => {{
+                parsedEdges.push({{ source: node.id, target: targetId }});
+            }});
         }});
     }}
 
-    // 간선 그리기
-    data.edges.forEach(edge => {{
-        const sourceNode = data.nodes.find(n => n.id === edge.source);
-        const targetNode = data.nodes.find(n => n.id === edge.target);
-        
-        if(sourceNode && targetNode) {{
-            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            line.setAttribute('class', 'edge');
-            line.setAttribute('marker-end', 'url(#arrow)');
-            
-            line.setAttribute('x1', sourceNode.x);
-            line.setAttribute('y1', sourceNode.y);
-            line.setAttribute('x2', targetNode.x);
-            line.setAttribute('y2', targetNode.y);
-            
-            edgesLayer.appendChild(line);
-            edgeElements.push({{ line, source: sourceNode, target: targetNode }});
-        }}
-    }});
+    function updateViewBox() {{
+        const rect = svg.parentElement.getBoundingClientRect();
+        // 파일에 저장된 화면 위치(x, y)를 기준으로 컨테이너 크기만큼 ViewBox 설정
+        svg.setAttribute('viewBox', `${{appData.screen_position.x}} ${{appData.screen_position.y}} ${{rect.width}} ${{rect.height}}`);
+    }}
+    window.addEventListener('resize', updateViewBox);
 
-    // 노드 파이 차트 렌더링
-    function createPieSlices(g, nationsStr, radius) {{
-        const sortedNations = getSortedNations(nationsStr);
-        const count = sortedNations.length;
+    function createPieSlices(g, nationIds, radius) {{
+        const sortedIds = [...nationIds].sort((a, b) => a - b);
+        const count = sortedIds.length;
 
         if (count === 1) {{
             const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             circle.setAttribute('r', radius);
-            circle.setAttribute('fill', nationMap[sortedNations[0]] ? nationMap[sortedNations[0]].color : '#95a5a6');
+            circle.setAttribute('fill', nationMap[sortedIds[0]] ? nationMap[sortedIds[0]].color : '#95a5a6');
             g.appendChild(circle);
         }} else {{
-            let startAngle = -Math.PI / 2; // 12시 방향
+            let startAngle = -Math.PI / 2;
             const angleStep = (2 * Math.PI) / count;
-
             for (let i = 0; i < count; i++) {{
                 const endAngle = startAngle + angleStep;
                 const x1 = radius * Math.cos(startAngle);
@@ -599,7 +439,7 @@ html_code = f"""
                 
                 const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 path.setAttribute('d', pathData);
-                path.setAttribute('fill', nationMap[sortedNations[i]] ? nationMap[sortedNations[i]].color : '#95a5a6');
+                path.setAttribute('fill', nationMap[sortedIds[i]] ? nationMap[sortedIds[i]].color : '#95a5a6');
                 
                 g.appendChild(path);
                 startAngle = endAngle;
@@ -612,127 +452,198 @@ html_code = f"""
         g.appendChild(borderCircle);
     }}
 
-    // 노드 생성
-    data.nodes.forEach(node => {{
-        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        g.setAttribute('class', 'node');
-        g.setAttribute('transform', `translate(${{node.x}}, ${{node.y}})`);
+    function renderNetwork() {{
+        filterContainer.innerHTML = '';
+        edgesLayer.innerHTML = '';
+        nodesLayer.innerHTML = '';
+        edgeElements = [];
+        nodeElements = {{}};
         
-        createPieSlices(g, node.nations, 20);
-        
-        const textTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        textTitle.setAttribute('y', 38);
-        textTitle.textContent = node.title;
-
-        const textYear = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        textYear.setAttribute('class', 'year');
-        textYear.setAttribute('y', 53);
-        textYear.textContent = node.year;
-        
-        g.appendChild(textTitle);
-        g.appendChild(textYear);
-        nodesLayer.appendChild(g);
-        
-        nodeElements[node.id] = g;
-
-        g.addEventListener('mousedown', (e) => {{
-            draggedNode = node;
-            offsetX = e.clientX - node.x;
-            offsetY = e.clientY - node.y;
-            e.stopPropagation();
+        // 필터 UI
+        appData.nations.forEach(nItem => {{
+            const item = document.createElement('div');
+            item.className = 'filter-item active';
+            item.innerHTML = `
+                <div class="color-circle" style="background-color: ${{nItem.color}};"></div>
+                <span>${{nItem.name}}</span>
+            `;
+            item.addEventListener('click', () => {{
+                if (activeNations.has(nItem.id)) {{
+                    activeNations.delete(nItem.id);
+                    item.classList.add('inactive');
+                }} else {{
+                    activeNations.add(nItem.id);
+                    item.classList.remove('inactive');
+                }}
+                updateFilters();
+            }});
+            filterContainer.appendChild(item);
         }});
 
-        g.addEventListener('click', (e) => {{
-            openSidebar(node);
-            e.stopPropagation();
+        // 간선 렌더링
+        parsedEdges.forEach(edge => {{
+            const sourceNode = appData.nodes.find(n => n.id === edge.source);
+            const targetNode = appData.nodes.find(n => n.id === edge.target);
+            if(sourceNode && targetNode) {{
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('class', 'edge');
+                line.setAttribute('marker-end', 'url(#arrow)');
+                line.setAttribute('x1', sourceNode.position.x);
+                line.setAttribute('y1', sourceNode.position.y);
+                line.setAttribute('x2', targetNode.position.x);
+                line.setAttribute('y2', targetNode.position.y);
+                edgesLayer.appendChild(line);
+                edgeElements.push({{ line, source: sourceNode, target: targetNode }});
+            }}
         }});
-    }});
 
-    function updateEdgesPosition() {{
+        // 노드 렌더링
+        appData.nodes.forEach(node => {{
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            g.setAttribute('class', 'node');
+            g.setAttribute('transform', `translate(${{node.position.x}}, ${{node.position.y}})`);
+            
+            createPieSlices(g, node.nations, 20);
+            
+            const textTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            textTitle.setAttribute('y', 38);
+            textTitle.textContent = node.name;
+
+            const textYear = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            textYear.setAttribute('class', 'year');
+            textYear.setAttribute('y', 53);
+            textYear.textContent = node.year;
+            
+            g.appendChild(textTitle);
+            g.appendChild(textYear);
+            nodesLayer.appendChild(g);
+            
+            nodeElements[node.id] = g;
+
+            g.addEventListener('mousedown', (e) => startDrag(e, node));
+            g.addEventListener('click', (e) => {{
+                openSidebar(node);
+                e.stopPropagation();
+            }});
+        }});
+        updateFilters();
+    }}
+
+    function updateFilters() {{
+        appData.nodes.forEach(node => {{
+            const isActive = node.nations.some(id => activeNations.has(id));
+            const g = nodeElements[node.id];
+            if (isActive) {{
+                g.classList.remove('dimmed');
+            }} else {{
+                g.classList.add('dimmed');
+                if (sidePanel.classList.contains('open') && document.getElementById('panel-title').textContent === node.name) {{
+                    closeSidebar();
+                }}
+            }}
+        }});
+        
         edgeElements.forEach(e => {{
-            e.line.setAttribute('x1', e.source.x);
-            e.line.setAttribute('y1', e.source.y);
-            e.line.setAttribute('x2', e.target.x);
-            e.line.setAttribute('y2', e.target.y);
+            const sourceDimmed = nodeElements[e.source.id].classList.contains('dimmed');
+            const targetDimmed = nodeElements[e.target.id].classList.contains('dimmed');
+            if (!sourceDimmed && !targetDimmed) e.line.classList.remove('dimmed');
+            else e.line.classList.add('dimmed');
         }});
+    }}
+
+    // SVG 드래그 좌표 계산
+    function getSVGPoint(evt) {{
+        const pt = svg.createSVGPoint();
+        pt.x = evt.clientX;
+        pt.y = evt.clientY;
+        return pt.matrixTransform(svg.getScreenCTM().inverse());
+    }}
+
+    let draggedNode = null;
+    let offsetX = 0, offsetY = 0;
+
+    function startDrag(e, node) {{
+        const pt = getSVGPoint(e);
+        draggedNode = node;
+        offsetX = pt.x - node.position.x;
+        offsetY = pt.y - node.position.y;
+        e.stopPropagation();
     }}
 
     svg.addEventListener('mousemove', (e) => {{
         if (draggedNode) {{
-            const newX = e.clientX - offsetX;
-            const newY = e.clientY - offsetY; 
-            draggedNode.x = newX;
-            draggedNode.y = newY;
+            isDirty = true;
+            const pt = getSVGPoint(e);
+            draggedNode.position.x = pt.x - offsetX;
+            draggedNode.position.y = pt.y - offsetY;
+            nodeElements[draggedNode.id].setAttribute('transform', `translate(${{draggedNode.position.x}}, ${{draggedNode.position.y}})`);
             
-            nodeElements[draggedNode.id].setAttribute('transform', `translate(${{newX}}, ${{newY}})`);
-            updateEdgesPosition();
+            edgeElements.forEach(edge => {{
+                if (edge.source.id === draggedNode.id || edge.target.id === draggedNode.id) {{
+                    edge.line.setAttribute('x1', edge.source.position.x);
+                    edge.line.setAttribute('y1', edge.source.position.y);
+                    edge.line.setAttribute('x2', edge.target.position.x);
+                    edge.line.setAttribute('y2', edge.target.position.y);
+                }}
+            }});
         }}
     }});
 
     svg.addEventListener('mouseup', () => draggedNode = null);
     svg.addEventListener('mouseleave', () => draggedNode = null);
+    svg.addEventListener('click', closeSidebar);
 
     // 사이드바 로직
     window.openSidebarById = function(nodeId) {{
-        const targetNode = data.nodes.find(n => n.id === nodeId);
-        if (targetNode) {{
-            openSidebar(targetNode);
-        }}
+        const targetNode = appData.nodes.find(n => n.id === parseInt(nodeId));
+        if (targetNode) openSidebar(targetNode);
     }};
 
     function openSidebar(node) {{
-        panelTitle.textContent = node.title;
-        panelYear.textContent = node.year; 
-        panelDesc.textContent = node.desc;
+        document.getElementById('panel-title').textContent = node.name;
+        document.getElementById('panel-year').textContent = node.year; 
+        document.getElementById('panel-desc').textContent = node.description;
         
-        const sortedNations = getSortedNations(node.nations);
-        panelNations.textContent = sortedNations.join(', ');
+        const sortedIds = [...node.nations].sort((a,b) => a-b);
+        document.getElementById('panel-nations').textContent = sortedIds.map(id => nationMap[id].name).join(', ');
 
-        const causes = data.edges.filter(e => e.target === node.id);
-        panelCauses.innerHTML = causes.length > 0 
-            ? causes.map(e => {{
-                const n = data.nodes.find(x => x.id === e.source);
-                return `• <a href="#" class="event-link" onclick="openSidebarById('${{n.id}}'); return false;">${{n.title}}</a>`;
+        const causesHTML = (node.causes && node.causes.length > 0) 
+            ? node.causes.map(id => {{
+                const n = appData.nodes.find(x => x.id === id);
+                return `• <a href="#" class="event-link" onclick="openSidebarById('${{n.id}}'); return false;">${{n.name}}</a>`;
               }}).join('<br>') 
             : '<span style="color:#b2bec3;">없음 (시작 사건)</span>';
+        document.getElementById('panel-causes').innerHTML = causesHTML;
 
-        const results = data.edges.filter(e => e.source === node.id);
-        panelResults.innerHTML = results.length > 0 
-            ? results.map(e => {{
-                const n = data.nodes.find(x => x.id === e.target);
-                return `• <a href="#" class="event-link" onclick="openSidebarById('${{n.id}}'); return false;">${{n.title}}</a>`;
+        const resultsHTML = (node.results && node.results.length > 0) 
+            ? node.results.map(id => {{
+                const n = appData.nodes.find(x => x.id === id);
+                return `• <a href="#" class="event-link" onclick="openSidebarById('${{n.id}}'); return false;">${{n.name}}</a>`;
               }}).join('<br>') 
             : '<span style="color:#b2bec3;">없음 (마지막 사건)</span>';
+        document.getElementById('panel-results').innerHTML = resultsHTML;
 
-        const count = sortedNations.length;
-        if (count === 1) {{
-            panelStripe.style.background = nationMap[sortedNations[0]] ? nationMap[sortedNations[0]].color : '#2d3436';
+        const stripe = document.getElementById('panel-stripe');
+        if (sortedIds.length === 1) {{
+            stripe.style.background = nationMap[sortedIds[0]].color;
         }} else {{
-            const step = 100 / count;
-            const colorStops = [];
-            sortedNations.forEach((nation, idx) => {{
-                const color = nationMap[nation] ? nationMap[nation].color : '#95a5a6';
-                const startPct = (idx * step).toFixed(2);
-                const endPct = ((idx + 1) * step).toFixed(2);
-                colorStops.push(`${{color}} ${{startPct}}% ${{endPct}}%`);
+            const step = 100 / sortedIds.length;
+            const colorStops = sortedIds.map((id, idx) => {{
+                return `${{nationMap[id].color}} ${{(idx * step).toFixed(2)}}% ${{((idx + 1) * step).toFixed(2)}}%`;
             }});
-            panelStripe.style.background = `linear-gradient(to bottom, ${{colorStops.join(', ')}})`;
+            stripe.style.background = `linear-gradient(to bottom, ${{colorStops.join(', ')}})`;
         }}
 
         sidePanel.classList.add('open');
 
-        // ==== 화살표 색상 강조 로직 추가 ====
         edgeElements.forEach(e => {{
             if (e.target.id === node.id) {{
-                // 원인 화살표 (Incoming) -> 붉은색 강조
                 e.line.style.stroke = '#e74c3c';
                 e.line.setAttribute('marker-end', 'url(#arrow-cause)');
             }} else if (e.source.id === node.id) {{
-                // 결과 화살표 (Outgoing) -> 푸른색 강조
                 e.line.style.stroke = '#0984e3';
                 e.line.setAttribute('marker-end', 'url(#arrow-result)');
             }} else {{
-                // 선택 노드와 무관한 화살표 -> 기본 색상 복구
                 e.line.style.stroke = '#b2bec3';
                 e.line.setAttribute('marker-end', 'url(#arrow)');
             }}
@@ -741,16 +652,17 @@ html_code = f"""
 
     function closeSidebar() {{
         sidePanel.classList.remove('open');
-        
-        // ==== 사이드바가 닫힐 때 모든 화살표 원래 색상으로 복구 ====
         edgeElements.forEach(e => {{
             e.line.style.stroke = '#b2bec3';
             e.line.setAttribute('marker-end', 'url(#arrow)');
         }});
     }}
+    document.getElementById('close-btn').addEventListener('click', closeSidebar);
 
-    svg.addEventListener('click', closeSidebar);
-    closeBtn.addEventListener('click', closeSidebar);
+    // 초기화 실행
+    initData();
+    renderNetwork();
+    updateViewBox();
 
 </script>
 </body>
