@@ -323,6 +323,15 @@ html_code = f"""
     let isMapFocused = false;
     const borderedBox = document.getElementById('bordered-box');
 
+    // 드래그 관련 변수 미리 선언
+    let draggedNode = null;
+    let offsetX = 0, offsetY = 0;
+    let nodeMoved = false;
+    let dragStartX = 0, dragStartY = 0;
+    let origNodeX = 0, origNodeY = 0;
+    let isSignificantDrag = false;
+    const DRAG_THRESHOLD = 5;
+
     borderedBox.addEventListener('mousedown', () => {{
         isMapFocused = true;
     }});
@@ -333,9 +342,32 @@ html_code = f"""
         }}
     }});
 
+    // 창 전환(blur)이나 영역 이탈 시 드래그를 취소하고 탭 열림을 방지하는 함수
+    function cancelDrag() {{
+        if (draggedNode) {{
+            if (nodeMoved) {{
+                draggedNode.position.x = origNodeX;
+                draggedNode.position.y = origNodeY;
+                nodeElements[draggedNode.id].setAttribute('transform', `translate(${{origNodeX}}, ${{origNodeY}})`);
+                edgeElements.forEach(edge => {{
+                    if (edge.source.id === draggedNode.id || edge.target.id === draggedNode.id) {{
+                        edge.line.setAttribute('x1', edge.source.position.x);
+                        edge.line.setAttribute('y1', edge.source.position.y);
+                        edge.line.setAttribute('x2', edge.target.position.x);
+                        edge.line.setAttribute('y2', edge.target.position.y);
+                    }}
+                }});
+            }}
+            draggedNode = null;
+            nodeMoved = false;
+            isSignificantDrag = false;
+            checkNodeHover();
+        }}
+    }}
+
     window.addEventListener('blur', () => {{
         isMapFocused = false;
-        endDrag();
+        cancelDrag();
     }});
 
     // 글로벌 마우스 상태 추적
@@ -736,16 +768,6 @@ html_code = f"""
         return pt.matrixTransform(svg.getScreenCTM().inverse());
     }}
 
-    let draggedNode = null;
-    let offsetX = 0, offsetY = 0;
-    let nodeMoved = false;
-
-    // 미세 움직임 판별 및 복귀를 위한 변수
-    let dragStartX = 0, dragStartY = 0;
-    let origNodeX = 0, origNodeY = 0;
-    let isSignificantDrag = false;
-    const DRAG_THRESHOLD = 5;
-
     function startDrag(e, node) {{
         e.preventDefault();
         const pt = getSVGPoint(e);
@@ -764,7 +786,8 @@ html_code = f"""
         e.stopPropagation();
     }}
 
-    svg.addEventListener('mousemove', (e) => {{
+    // 마우스 이동 범위를 svg 전체 영역에서 메뉴/제목을 포함한 borderedBox 영역으로 확장
+    borderedBox.addEventListener('mousemove', (e) => {{
         if (draggedNode) {{
             const pt = getSVGPoint(e);
             
@@ -823,9 +846,18 @@ html_code = f"""
         }}
     }}
 
-    svg.addEventListener('mouseup', endDrag);
-    svg.addEventListener('mouseleave', endDrag);
-    svg.addEventListener('click', closeSidebar);
+    // 마우스를 떼는 동작도 메뉴 및 제목 영역(borderedBox)까지 확장하여 인식
+    borderedBox.addEventListener('mouseup', endDrag);
+    
+    // 전체 지도 영역 밖으로 마우스가 나가는 경우는 사이드바를 띄우지 않고 드래그 취소
+    borderedBox.addEventListener('mouseleave', cancelDrag);
+    
+    // 노드가 아닌 빈 배경 클릭 시에만 사이드바를 닫음 (단순 클릭 오작동 해결)
+    svg.addEventListener('click', (e) => {{
+        if (!e.target.closest('.node')) {{
+            closeSidebar();
+        }}
+    }});
 
     window.openSidebarById = function(nodeId) {{
         const targetNode = appData.nodes.find(n => n.id === parseInt(nodeId));
