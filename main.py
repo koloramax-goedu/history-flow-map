@@ -1,7 +1,6 @@
-import json
-import math
 import streamlit as st
 import streamlit.components.v1 as components
+import json
 
 # ==========================================
 # 1. 스트림릿 페이지 설정
@@ -20,190 +19,85 @@ events_data = {
         {"id": 3, "name": "신라", "color": "#2980b9"},
         {"id": 4, "name": "당", "color": "#c0392b"},
         {"id": 5, "name": "수", "color": "#8e44ad"},
-        {"id": 6, "name": "대가야", "color": "#7f8c8d"},
+        {"id": 6, "name": "대가야", "color": "#7f8c8d"}
     ],
     "nodes": [
         {
-            "id": 1,
-            "name": "성왕의 한강 수복",
-            "position": {"x": 5100, "y": 5150},
-            "year": 551,
+            "id": 1, "name": "성왕의 한강 수복", "position": {"x": 5100, "y": 5150}, "year": 551,
             "description": "백제 성왕이 신라 진흥왕과 연합하여 고구려를 공격, 한강 하류 유역을 수복한 사건입니다.",
-            "causes": [],
-            "results": [2],
-            "nations": [1, 2, 3],
+            "causes": [], "results": [2], "nations": [1, 2, 3]
         },
         {
-            "id": 2,
-            "name": "진흥왕의 한강 차지",
-            "position": {"x": 5300, "y": 5150},
-            "year": 553,
+            "id": 2, "name": "진흥왕의 한강 차지", "position": {"x": 5300, "y": 5150}, "year": 553,
             "description": "신라 진흥왕이 나제동맹을 깨고 기습적으로 백제를 공격하여 한강 유역을 독차지하고 신주를 설치했습니다.",
-            "causes": [1],
-            "results": [3],
-            "nations": [2, 3],
+            "causes": [1], "results": [3], "nations": [2, 3]
         },
         {
-            "id": 3,
-            "name": "관산성 전투",
-            "position": {"x": 5500, "y": 5150},
-            "year": 554,
+            "id": 3, "name": "관산성 전투", "position": {"x": 5500, "y": 5150}, "year": 554,
             "description": "신라의 배신에 분노한 백제 성왕이 대가야와 연합하여 신라를 공격했으나, 관산성에서 전사하고 대패한 전투입니다.",
-            "causes": [2],
-            "results": [6],
-            "nations": [2, 3, 6],
+            "causes": [2], "results": [6], "nations": [2, 3, 6]
         },
         {
-            "id": 4,
-            "name": "살수대첩",
-            "position": {"x": 5100, "y": 5350},
-            "year": 612,
+            "id": 4, "name": "살수대첩", "position": {"x": 5100, "y": 5350}, "year": 612,
             "description": "고구려의 을지문덕이 살수(청천강)에서 수나라의 30만 별동대를 크게 물리친 전투입니다.",
-            "causes": [],
-            "results": [5],
-            "nations": [1, 5],
+            "causes": [], "results": [5], "nations": [1, 5]
         },
         {
-            "id": 5,
-            "name": "안시성 전투",
-            "position": {"x": 5300, "y": 5350},
-            "year": 645,
+            "id": 5, "name": "안시성 전투", "position": {"x": 5300, "y": 5350}, "year": 645,
             "description": "고구려 안시성에서 당나라 태종의 대군을 맞아 약 88일간의 치열한 공방전 끝에 당군을 물리친 전투입니다.",
-            "causes": [4],
-            "results": [6],
-            "nations": [1, 4],
+            "causes": [4], "results": [6], "nations": [1, 4]
         },
         {
-            "id": 6,
-            "name": "나당 동맹 체결",
-            "position": {"x": 5500, "y": 5250},
-            "year": 648,
+            "id": 6, "name": "나당 동맹 체결", "position": {"x": 5500, "y": 5250}, "year": 648,
             "description": "백제의 잦은 공격으로 위기에 처한 신라(김춘추)가 당나라로 건너가 고구려와 백제를 멸망시키기 위한 군사 동맹을 맺은 사건입니다.",
-            "causes": [3, 5],
-            "results": [7, 9],
-            "nations": [3, 4],
+            "causes": [3, 5], "results": [7, 9], "nations": [3, 4]
         },
         {
-            "id": 7,
-            "name": "황산벌 전투",
-            "position": {"x": 5700, "y": 5150},
-            "year": 660,
+            "id": 7, "name": "황산벌 전투", "position": {"x": 5700, "y": 5150}, "year": 660,
             "description": "나당 연합군이 백제를 공격하자, 계백 장군이 이끄는 5천 결사대가 황산벌에서 김유신의 5만 신라군에 맞서 싸운 전투입니다.",
-            "causes": [6],
-            "results": [8],
-            "nations": [2, 3, 4],
+            "causes": [6], "results": [8], "nations": [2, 3, 4]
         },
         {
-            "id": 8,
-            "name": "백제 멸망",
-            "position": {"x": 5900, "y": 5150},
-            "year": 660,
+            "id": 8, "name": "백제 멸망", "position": {"x": 5900, "y": 5150}, "year": 660,
             "description": "황산벌 전투 패배 후 사비성이 나당 연합군에게 함락되며 의자왕이 항복, 백제가 멸망하게 됩니다.",
-            "causes": [7],
-            "results": [9, 10],
-            "nations": [2, 3, 4],
+            "causes": [7], "results": [9, 10], "nations": [2, 3, 4]
         },
         {
-            "id": 9,
-            "name": "고구려 멸망",
-            "position": {"x": 5900, "y": 5350},
-            "year": 668,
+            "id": 9, "name": "고구려 멸망", "position": {"x": 5900, "y": 5350}, "year": 668,
             "description": "오랜 전쟁과 연개소문 사후의 내분으로 국력이 약해진 고구려가 나당 연합군의 공격을 받고 평양성이 함락되며 멸망했습니다.",
-            "causes": [6, 8],
-            "results": [10],
-            "nations": [1, 3, 4],
+            "causes": [6, 8], "results": [10], "nations": [1, 3, 4]
         },
         {
-            "id": 10,
-            "name": "기벌포 해전",
-            "position": {"x": 6100, "y": 5250},
-            "year": 676,
+            "id": 10, "name": "기벌포 해전", "position": {"x": 6100, "y": 5250}, "year": 676,
             "description": "신라가 한반도 전체를 지배하려는 당나라에 맞서 싸운 나당 전쟁의 마지막 전투. 기벌포에서 당의 수군을 궤멸시켜 삼국통일을 완수했습니다.",
-            "causes": [8, 9],
-            "results": [],
-            "nations": [3, 4],
-        },
-    ],
+            "causes": [8, 9], "results": [], "nations": [3, 4]
+        }
+    ]
 }
 
 # ==========================================
-# 3. Python 로직 구현 연산
+# 3. 데이터 필터링
 # ==========================================
-nation_map = {n["id"]: n for n in events_data["nations"]}
+nation_options = {n["id"]: n["name"] for n in events_data["nations"]}
 
+selected_nation_ids = st.multiselect(
+    "표시할 국가 선택",
+    options=list(nation_options.keys()),
+    format_func=lambda x: nation_options[x],
+    default=list(nation_options.keys())
+)
 
-def generate_pie_slices_svg(nation_ids, radius=20):
-    sorted_ids = sorted(nation_ids)
-    count = len(sorted_ids)
-    svg_parts = []
+filtered_nodes = [
+    node for node in events_data["nodes"]
+    if any(nid in selected_nation_ids for nid in node["nations"])
+]
 
-    if count == 1:
-        color = nation_map.get(sorted_ids[0], {}).get("color", "#95a5a6")
-        svg_parts.append(f'<circle r="{radius}" fill="{color}"></circle>')
-    else:
-        start_angle = -math.pi / 2
-        angle_step = (2 * math.pi) / count
-        for i in range(count):
-            end_angle = start_angle + angle_step
-            x1 = radius * math.cos(start_angle)
-            y1 = radius * math.sin(start_angle)
-            x2 = radius * math.cos(end_angle)
-            y2 = radius * math.sin(end_angle)
-            large_arc_flag = 1 if angle_step > math.pi else 0
-            path_data = f"M 0 0 L {x1:.2f} {y1:.2f} A {radius} {radius} 0 {large_arc_flag} 1 {x2:.2f} {y2:.2f} Z"
-            color = nation_map.get(sorted_ids[i], {}).get("color", "#95a5a6")
-            svg_parts.append(f'<path d="{path_data}" fill="{color}"></path>')
-            start_angle = end_angle
-
-    svg_parts.append(f'<circle r="{radius}" class="node-border"></circle>')
-    return "".join(svg_parts)
-
-
-def generate_edges_svg():
-    edges_svg = []
-    nodes_by_id = {node["id"]: node for node in events_data["nodes"]}
-    for node in events_data["nodes"]:
-        for target_id in node.get("results", []):
-            target_node = nodes_by_id.get(target_id)
-            if target_node:
-                x1 = node["position"]["x"]
-                y1 = node["position"]["y"]
-                x2 = target_node["position"]["x"]
-                y2 = target_node["position"]["y"]
-                edges_svg.append(
-                    f'<line class="edge" marker-end="url(#arrow)" x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" data-source="{node["id"]}" data-target="{target_id}"></line>'
-                )
-    return "".join(edges_svg)
-
-
-def generate_nodes_svg():
-    nodes_svg = []
-    for node in events_data["nodes"]:
-        pie_svg = generate_pie_slices_svg(node["nations"], radius=20)
-        nations_attr = ",".join(map(str, node["nations"]))
-        g_element = f"""<g class="node" id="node-{node["id"]}" data-id="{node["id"]}" data-nations="{nations_attr}" transform="translate({node["position"]["x"]}, {node["position"]["y"]})">
-            {pie_svg}
-            <text y="38">{node["name"]}</text>
-            <text class="year" y="53">{node["year"]}</text>
-        </g>"""
-        nodes_svg.append(g_element)
-    return "".join(nodes_svg)
-
-
-def generate_filter_container_html():
-    filter_html = []
-    for n in events_data["nations"]:
-        item = f"""<div class="filter-item active" data-nation-id="{n["id"]}">
-            <div class="color-circle" style="background-color: {n["color"]};"></div>
-            <span>{n["name"]}</span>
-        </div>"""
-        filter_html.append(item)
-    return "".join(filter_html)
-
-
-rendered_edges_svg = generate_edges_svg()
-rendered_nodes_svg = generate_nodes_svg()
-rendered_filter_html = generate_filter_container_html()
+filtered_events_data = {
+    "map_size": events_data["map_size"],
+    "screen_position": events_data["screen_position"],
+    "nations": [n for n in events_data["nations"] if n["id"] in selected_nation_ids],
+    "nodes": filtered_nodes
+}
 
 # ==========================================
 # 4. HTML/CSS/JS 통합 컴포넌트 코드
@@ -403,7 +297,7 @@ html_code = f"""
         <div id="divider"></div>
 
         <div id="network-container">
-            <div id="filter-container">{rendered_filter_html}</div>
+            <div id="filter-container"></div>
             
             <svg id="network">
                 <defs>
@@ -417,8 +311,8 @@ html_code = f"""
                         <path d="M0,-5L10,0L0,5" fill="#0984e3"></path>
                     </marker>
                 </defs>
-                <g id="edges-layer">{rendered_edges_svg}</g>
-                <g id="nodes-layer">{rendered_nodes_svg}</g>
+                <g id="edges-layer"></g>
+                <g id="nodes-layer"></g>
             </svg>
             
             <div id="side-panel">
@@ -448,7 +342,7 @@ html_code = f"""
 <input type="file" id="file-input" accept=".json" style="display: none;">
 
 <script>
-    let appData = {json.dumps(events_data)};
+    let appData = {json.dumps(filtered_events_data)};
     let initialData = JSON.parse(JSON.stringify(appData));
     let isDirty = false;
     
@@ -880,41 +774,6 @@ html_code = f"""
         g.appendChild(borderCircle);
     }}
 
-    function bindEvents() {{
-        filterContainer.querySelectorAll('.filter-item').forEach(item => {{
-            const nid = parseInt(item.getAttribute('data-nation-id'));
-            item.addEventListener('click', () => {{
-                if (activeNations.has(nid)) {{
-                    activeNations.delete(nid);
-                    item.classList.add('inactive');
-                }} else {{
-                    activeNations.add(nid);
-                    item.classList.remove('inactive');
-                }}
-                updateFilters();
-            }});
-        }});
-
-        edgesLayer.querySelectorAll('.edge').forEach(line => {{
-            const sId = parseInt(line.getAttribute('data-source'));
-            const tId = parseInt(line.getAttribute('data-target'));
-            const sourceNode = appData.nodes.find(n => n.id === sId);
-            const targetNode = appData.nodes.find(n => n.id === tId);
-            if (sourceNode && targetNode) {{
-                edgeElements.push({{ line, source: sourceNode, target: targetNode }});
-            }}
-        }});
-
-        nodesLayer.querySelectorAll('.node').forEach(g => {{
-            const id = parseInt(g.getAttribute('data-id'));
-            const node = appData.nodes.find(n => n.id === id);
-            nodeElements[id] = g;
-            if (node) {{
-                g.addEventListener('mousedown', (e) => startDrag(e, node));
-            }}
-        }});
-    }}
-
     function renderNetwork() {{
         filterContainer.innerHTML = '';
         edgesLayer.innerHTML = '';
@@ -925,7 +784,6 @@ html_code = f"""
         appData.nations.forEach(nItem => {{
             const item = document.createElement('div');
             item.className = 'filter-item active';
-            item.setAttribute('data-nation-id', nItem.id);
             item.innerHTML = `
                 <div class="color-circle" style="background-color: ${{nItem.color}};"></div>
                 <span>${{nItem.name}}</span>
@@ -990,21 +848,19 @@ html_code = f"""
         appData.nodes.forEach(node => {{
             const isActive = node.nations.some(id => activeNations.has(id));
             const g = nodeElements[node.id];
-            if (g) {{
-                if (isActive) {{
-                    g.classList.remove('dimmed');
-                }} else {{
-                    g.classList.add('dimmed');
-                    if (sidePanel.classList.contains('open') && document.getElementById('panel-title').textContent === node.name) {{
-                        closeSidebar();
-                    }}
+            if (isActive) {{
+                g.classList.remove('dimmed');
+            }} else {{
+                g.classList.add('dimmed');
+                if (sidePanel.classList.contains('open') && document.getElementById('panel-title').textContent === node.name) {{
+                    closeSidebar();
                 }}
             }}
         }});
         
         edgeElements.forEach(e => {{
-            const sourceDimmed = nodeElements[e.source.id] ? nodeElements[e.source.id].classList.contains('dimmed') : false;
-            const targetDimmed = nodeElements[e.target.id] ? nodeElements[e.target.id].classList.contains('dimmed') : false;
+            const sourceDimmed = nodeElements[e.source.id].classList.contains('dimmed');
+            const targetDimmed = nodeElements[e.target.id].classList.contains('dimmed');
             if (!sourceDimmed && !targetDimmed) e.line.classList.remove('dimmed');
             else e.line.classList.add('dimmed');
         }});
@@ -1043,9 +899,7 @@ html_code = f"""
         offsetX = pt.x - node.position.x;
         offsetY = pt.y - node.position.y;
         
-        if (nodeElements[node.id]) {{
-            nodeElements[node.id].classList.add('hover-active');
-        }}
+        nodeElements[node.id].classList.add('hover-active');
         isMapFocused = true;
         window.focus();
         e.stopPropagation();
@@ -1085,9 +939,7 @@ html_code = f"""
             
             draggedNode.position.x = newX;
             draggedNode.position.y = newY;
-            if (nodeElements[draggedNode.id]) {{
-                nodeElements[draggedNode.id].setAttribute('transform', `translate(${{draggedNode.position.x}}, ${{draggedNode.position.y}})`);
-            }}
+            nodeElements[draggedNode.id].setAttribute('transform', `translate(${{draggedNode.position.x}}, ${{draggedNode.position.y}})`);
             
             edgeElements.forEach(edge => {{
                 if (edge.source.id === draggedNode.id || edge.target.id === draggedNode.id) {{
@@ -1200,8 +1052,8 @@ html_code = f"""
     document.getElementById('close-btn').addEventListener('click', closeSidebar);
 
     initData();
-    bindEvents();
     pushHistory();
+    renderNetwork();
     updateViewBox();
 
 </script>
