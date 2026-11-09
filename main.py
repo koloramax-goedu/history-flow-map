@@ -104,6 +104,7 @@ html_code = f"""
             border: 1px solid #000000;
             border-radius: 8px; overflow: hidden;
             position: relative; background-color: #ffffff;
+            outline: none;
         }}
 
         #title-area {{
@@ -240,7 +241,7 @@ html_code = f"""
 <body>
 
 <div id="map-container">
-    <div id="bordered-box">
+    <div id="bordered-box" tabindex="0">
         <div id="title-area">
             <h1 id="main-title">역사적 사건 인과관계 지도</h1>
             <div id="menu-bar">
@@ -340,6 +341,7 @@ html_code = f"""
 
     borderedBox.addEventListener('mousedown', () => {{
         isMapFocused = true;
+        window.focus();
     }});
 
     document.addEventListener('mousedown', (e) => {{
@@ -504,24 +506,29 @@ html_code = f"""
     }}
 
     window.addEventListener('keydown', (e) => {{
-        if (!isMapFocused) return;
+        if (e.ctrlKey || e.metaKey) {{
+            const key = e.key ? e.key.toLowerCase() : '';
+            const code = e.code;
 
-        if (e.ctrlKey) {{
-            const key = e.key.toLowerCase();
-            if (['s', 'l', 'z', 'y'].includes(key)) {{
+            const isS = key === 's' || key === 'ㄴ' || code === 'KeyS';
+            const isL = key === 'l' || key === 'ㅣ' || code === 'KeyL';
+            const isZ = key === 'z' || key === 'ㅋ' || code === 'KeyZ';
+            const isY = key === 'y' || key === 'ㅛ' || code === 'KeyY';
+
+            if (isS || isL || isZ || isY) {{
                 e.preventDefault();
 
-                if (key === 's') {{
+                if (isS) {{
                     if (!saveCooldown) {{
                         executeSave();
                         saveCooldown = true;
                         setTimeout(() => {{ saveCooldown = false; }}, 2000);
                     }}
                 }}
-                else if (key === 'l') {{
+                else if (isL) {{
                     document.getElementById('file-input').click();
                 }}
-                else if (key === 'z') {{
+                else if (isZ) {{
                     if (!zKeyActive) {{
                         zKeyActive = true;
                         doUndo();
@@ -530,7 +537,7 @@ html_code = f"""
                         }}, 300);
                     }}
                 }}
-                else if (key === 'y') {{
+                else if (isY) {{
                     if (!yKeyActive) {{
                         yKeyActive = true;
                         doRedo();
@@ -544,13 +551,14 @@ html_code = f"""
     }});
 
     window.addEventListener('keyup', (e) => {{
-        const key = e.key.toLowerCase();
-        if (key === 'z') {{
+        const key = e.key ? e.key.toLowerCase() : '';
+        const code = e.code;
+        if (key === 'z' || key === 'ㅋ' || code === 'KeyZ') {{
             zKeyActive = false;
             clearTimeout(zTimeout);
             clearInterval(zInterval);
         }}
-        if (key === 'y') {{
+        if (key === 'y' || key === 'ㅛ' || code === 'KeyY') {{
             yKeyActive = false;
             clearTimeout(yTimeout);
             clearInterval(yInterval);
@@ -846,16 +854,16 @@ html_code = f"""
         return pt.matrixTransform(svg.getScreenCTM().inverse());
     }}
     
-    // 배경(화면) 드래그 시작 [조건 2, 3 반영]
+    // 배경(화면) 드래그 시작
     svg.addEventListener('mousedown', (e) => {{
-        if (e.button !== 0) return; // 마우스 좌클릭만 허용
+        if (e.button !== 0) return;
         if (!e.target.closest('.node')) {{
             isPanning = true;
             panStartX = e.clientX;
             panStartY = e.clientY;
             panStartScreenX = appData.screen_position.x;
             panStartScreenY = appData.screen_position.y;
-            e.preventDefault(); // 텍스트 선택 등 브라우저 기본 동작 방지
+            e.preventDefault();
         }}
     }});
 
@@ -874,13 +882,13 @@ html_code = f"""
         offsetY = pt.y - node.position.y;
         
         nodeElements[node.id].classList.add('hover-active');
-        isMapFocused = true; // [조건 1 적용] 노드 클릭 시 바로 맵 포커스 활성화
+        isMapFocused = true;
+        window.focus();
         e.stopPropagation();
     }}
 
-    // 마우스 이동 처리 (노드 드래그 및 화면 패닝) [조건 1, 2, 3 반영]
+    // 마우스 이동 처리 (노드 드래그 및 화면 패닝)
     borderedBox.addEventListener('mousemove', (e) => {{
-        // 마우스 버튼이 떼어졌거나(0) 영역의 포커스를 잃은 경우 즉시 드래그 해제
         if (e.buttons === 0 || !isMapFocused) {{
             if (draggedNode || isPanning) {{
                 handleDragInterrupt();
@@ -894,7 +902,6 @@ html_code = f"""
             const dx = pt.x - dragStartX;
             const dy = pt.y - dragStartY;
             
-            // [조건 2 적용] 임계치를 넘기 전까지는 이동을 무시하고 반환 (시각적으로 노드가 이동하지 않음)
             if (!isSignificantDrag) {{
                 if (Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {{
                     isSignificantDrag = true;
@@ -909,7 +916,6 @@ html_code = f"""
             let newX = pt.x - offsetX;
             let newY = pt.y - offsetY;
             
-            // 경계를 기준으로 안쪽 50만큼의 범위 제한
             const limit = 50;
             newX = Math.max(limit, Math.min(newX, appData.map_size.x - limit));
             newY = Math.max(limit, Math.min(newY, appData.map_size.y - limit));
@@ -935,13 +941,12 @@ html_code = f"""
             
             appData.screen_position.x = newX;
             appData.screen_position.y = newY;
-            updateViewBox(); // 내부에서 이동 경계 제한을 자동으로 처리
+            updateViewBox();
         }}
     }});
 
     function endDrag() {{
         if (draggedNode) {{
-            // [조건 2 적용] 실질적인 드래그가 발생한 경우만 상태를 기록하고, 아니면 정보 패널 열기
             if (isSignificantDrag) {{
                 pushHistory();
             }} else {{
