@@ -8,7 +8,7 @@ import json
 st.set_page_config(page_title="역사적 사건 인과관계 지도", layout="wide")
 
 # ==========================================
-# 2. 역사 사건 데이터 정의 (요청한 새 데이터 구조 적용)
+# 2. 역사 사건 데이터 정의
 # ==========================================
 events_data = {
     "map_size": {"x": 10000, "y": 10000},
@@ -134,17 +134,24 @@ html_code = f"""
         .menu-dropdown {{
             display: none; position: absolute;
             top: 100%; left: 0; margin-top: 6px;
-            background-color: #ffffff; min-width: 130px;
+            background-color: #ffffff; min-width: 160px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             border: 1px solid #dfe6e9; border-radius: 6px;
             padding: 5px 0; z-index: 200;
         }}
         .menu-dropdown.show {{ display: block; }}
+        
+        /* 메뉴 아이템 내 텍스트와 단축키 분리 배치 */
         .dropdown-item {{
             padding: 8px 15px; font-size: 13px;
             color: #2d3436; cursor: pointer; text-align: left;
+            display: flex; justify-content: space-between; align-items: center; gap: 20px;
         }}
-        .dropdown-item:hover {{ background-color: #f1f2f6; }}
+        .dropdown-item:hover:not(.disabled) {{ background-color: #f1f2f6; }}
+        
+        /* 비활성화, 단축키 텍스트 스타일 추가 */
+        .dropdown-item.disabled {{ color: #b2bec3; cursor: default; }}
+        .shortcut-text {{ font-size: 11px; color: #a4b0be; user-select: none; pointer-events: none; }}
 
         #divider {{ width: 100%; height: 2px; background-color: #e2e8f0; }}
 
@@ -191,7 +198,6 @@ html_code = f"""
         }}
         .edge.dimmed {{ opacity: 0.15; }}
         
-        /* 오른쪽 세부 정보 탭 */
         #side-panel {{
             position: absolute; top: 0; right: -450px;
             width: 400px; height: 100%; background-color: #ffffff;
@@ -238,29 +244,32 @@ html_code = f"""
                 <div class="menu-item">
                     <div class="menu-title">파일</div>
                     <div class="menu-dropdown">
-                        <div class="dropdown-item" id="menu-save">저장하기</div>
-                        <div class="dropdown-item" id="menu-load">불러오기</div>
+                        <div class="dropdown-item" id="menu-save"><span>저장하기</span><span class="shortcut-text">Ctrl+C</span></div>
+                        <div class="dropdown-item" id="menu-load"><span>불러오기</span><span class="shortcut-text">Ctrl+L</span></div>
                     </div>
                 </div>
                 <div class="menu-item">
                     <div class="menu-title">명령</div>
                     <div class="menu-dropdown">
-                        <div class="dropdown-item">빈 항목 1</div>
-                        <div class="dropdown-item">빈 항목 2</div>
+                        <!-- 명령 1, 2번에 실행 취소, 다시 실행 추가 -->
+                        <div class="dropdown-item disabled" id="menu-undo"><span>실행 취소</span><span class="shortcut-text">Ctrl+Z</span></div>
+                        <div class="dropdown-item disabled" id="menu-redo"><span>다시 실행</span><span class="shortcut-text">Ctrl+Y</span></div>
+                        <div class="dropdown-item"><span>빈 항목 1</span></div>
+                        <div class="dropdown-item"><span>빈 항목 2</span></div>
                     </div>
                 </div>
                 <div class="menu-item">
                     <div class="menu-title">화면</div>
                     <div class="menu-dropdown">
-                        <div class="dropdown-item">빈 항목 1</div>
-                        <div class="dropdown-item">빈 항목 2</div>
-                        <div class="dropdown-item">빈 항목 3</div>
+                        <div class="dropdown-item"><span>빈 항목 1</span></div>
+                        <div class="dropdown-item"><span>빈 항목 2</span></div>
+                        <div class="dropdown-item"><span>빈 항목 3</span></div>
                     </div>
                 </div>
                 <div class="menu-item">
                     <div class="menu-title">기타</div>
                     <div class="menu-dropdown">
-                        <div class="dropdown-item">빈 항목 1</div>
+                        <div class="dropdown-item"><span>빈 항목 1</span></div>
                     </div>
                 </div>
             </div>
@@ -318,11 +327,133 @@ html_code = f"""
     let appData = {json.dumps(events_data)};
     let isDirty = false;
     
+    // 히스토리 (실행 취소/다시 실행) 관리를 위한 변수
+    let historyStack = [];
+    let historyIndex = -1;
+
+    // 현재 상태를 히스토리 스택에 저장
+    function pushHistory() {{
+        // 현재 인덱스 이후의 히스토리는 버림
+        if (historyIndex < historyStack.length - 1) {{
+            historyStack = historyStack.slice(0, historyIndex + 1);
+        }}
+        historyStack.push(JSON.stringify(appData));
+        historyIndex++;
+        updateUndoRedoMenu();
+    }}
+
+    // 실행 취소
+    function doUndo() {{
+        if (historyIndex > 0) {{
+            historyIndex--;
+            appData = JSON.parse(historyStack[historyIndex]);
+            initData();
+            renderNetwork();
+            updateUndoRedoMenu();
+        }}
+    }}
+
+    // 다시 실행
+    function doRedo() {{
+        if (historyIndex < historyStack.length - 1) {{
+            historyIndex++;
+            appData = JSON.parse(historyStack[historyIndex]);
+            initData();
+            renderNetwork();
+            updateUndoRedoMenu();
+        }}
+    }}
+
+    // 메뉴 항목 비활성화 업데이트
+    function updateUndoRedoMenu() {{
+        const btnUndo = document.getElementById('menu-undo');
+        const btnRedo = document.getElementById('menu-redo');
+        
+        if (historyIndex <= 0) btnUndo.classList.add('disabled');
+        else btnUndo.classList.remove('disabled');
+
+        if (historyIndex >= historyStack.length - 1) btnRedo.classList.add('disabled');
+        else btnRedo.classList.remove('disabled');
+    }}
+    
     // 창 닫힘 방지
     window.addEventListener('beforeunload', (e) => {{
         if (isDirty) {{
             e.preventDefault();
             e.returnValue = '';
+        }}
+    }});
+
+    // 단축키 관리 및 쿨타임/연속실행 변수
+    let saveCooldown = false;
+    let zKeyActive = false;
+    let yKeyActive = false;
+    let zTimeout = null, zInterval = null;
+    let yTimeout = null, yInterval = null;
+
+    // 파일 저장 로직 분리 (메뉴 클릭과 단축키 공용)
+    function executeSave() {{
+        const dataStr = JSON.stringify(appData, null, 2);
+        const blob = new Blob([dataStr], {{ type: "application/json" }});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "history_map.json";
+        a.click();
+        URL.revokeObjectURL(url);
+        isDirty = false;
+    }}
+
+    window.addEventListener('keydown', (e) => {{
+        if (e.ctrlKey) {{
+            const key = e.key.toLowerCase();
+            if (key === 'c') {{
+                e.preventDefault();
+                if (!saveCooldown) {{
+                    executeSave();
+                    saveCooldown = true;
+                    // 단축키 저장은 2초 쿨타임
+                    setTimeout(() => {{ saveCooldown = false; }}, 2000);
+                }}
+            }}
+            else if (key === 'l') {{
+                e.preventDefault();
+                document.getElementById('file-input').click();
+            }}
+            else if (key === 'z') {{
+                e.preventDefault();
+                if (!zKeyActive) {{
+                    zKeyActive = true;
+                    doUndo();
+                    zTimeout = setTimeout(() => {{
+                        zInterval = setInterval(doUndo, 100);
+                    }}, 300);
+                }}
+            }}
+            else if (key === 'y') {{
+                e.preventDefault();
+                if (!yKeyActive) {{
+                    yKeyActive = true;
+                    doRedo();
+                    yTimeout = setTimeout(() => {{
+                        yInterval = setInterval(doRedo, 100);
+                    }}, 300);
+                }}
+            }}
+        }}
+    }});
+
+    window.addEventListener('keyup', (e) => {{
+        const key = e.key.toLowerCase();
+        if (key === 'z') {{
+            zKeyActive = false;
+            clearTimeout(zTimeout);
+            clearInterval(zInterval);
+        }}
+        if (key === 'y') {{
+            yKeyActive = false;
+            clearTimeout(yTimeout);
+            clearInterval(yInterval);
         }}
     }});
 
@@ -344,21 +475,15 @@ html_code = f"""
         document.querySelectorAll('.menu-dropdown').forEach(dd => dd.classList.remove('show'));
     }});
 
-    // 로컬 저장 / 불러오기
-    document.getElementById('menu-save').addEventListener('click', () => {{
-        const dataStr = JSON.stringify(appData, null, 2);
-        const blob = new Blob([dataStr], {{ type: "application/json" }});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = "history_map.json";
-        a.click();
-        URL.revokeObjectURL(url);
-        isDirty = false;
+    // 메뉴 클릭 기능 연결 (저장 메뉴는 쿨타임 무시)
+    document.getElementById('menu-save').addEventListener('click', executeSave);
+    document.getElementById('menu-load').addEventListener('click', () => document.getElementById('file-input').click());
+    
+    document.getElementById('menu-undo').addEventListener('click', (e) => {{
+        if(!e.currentTarget.classList.contains('disabled')) doUndo();
     }});
-
-    document.getElementById('menu-load').addEventListener('click', () => {{
-        document.getElementById('file-input').click();
+    document.getElementById('menu-redo').addEventListener('click', (e) => {{
+        if(!e.currentTarget.classList.contains('disabled')) doRedo();
     }});
 
     document.getElementById('file-input').addEventListener('change', (e) => {{
@@ -369,6 +494,12 @@ html_code = f"""
             try {{
                 appData = JSON.parse(ev.target.result);
                 isDirty = false;
+                
+                // 파일 불러오기 시 히스토리 스택 초기화
+                historyStack = [];
+                historyIndex = -1;
+                pushHistory();
+                
                 initData();
                 renderNetwork();
                 updateViewBox();
@@ -377,7 +508,7 @@ html_code = f"""
             }}
         }};
         reader.readAsText(file);
-        e.target.value = ""; // 동일 파일 연속 업로드 허용
+        e.target.value = ""; 
     }});
 
     let nationMap = {{}};
@@ -410,7 +541,6 @@ html_code = f"""
 
     function updateViewBox() {{
         const rect = svg.parentElement.getBoundingClientRect();
-        // 파일에 저장된 화면 위치(x, y)를 기준으로 컨테이너 크기만큼 ViewBox 설정
         svg.setAttribute('viewBox', `${{appData.screen_position.x}} ${{appData.screen_position.y}} ${{rect.width}} ${{rect.height}}`);
     }}
     window.addEventListener('resize', updateViewBox);
@@ -459,7 +589,6 @@ html_code = f"""
         edgeElements = [];
         nodeElements = {{}};
         
-        // 필터 UI
         appData.nations.forEach(nItem => {{
             const item = document.createElement('div');
             item.className = 'filter-item active';
@@ -480,7 +609,6 @@ html_code = f"""
             filterContainer.appendChild(item);
         }});
 
-        // 간선 렌더링
         parsedEdges.forEach(edge => {{
             const sourceNode = appData.nodes.find(n => n.id === edge.source);
             const targetNode = appData.nodes.find(n => n.id === edge.target);
@@ -497,7 +625,6 @@ html_code = f"""
             }}
         }});
 
-        // 노드 렌더링
         appData.nodes.forEach(node => {{
             const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             g.setAttribute('class', 'node');
@@ -551,7 +678,6 @@ html_code = f"""
         }});
     }}
 
-    // SVG 드래그 좌표 계산
     function getSVGPoint(evt) {{
         const pt = svg.createSVGPoint();
         pt.x = evt.clientX;
@@ -561,10 +687,12 @@ html_code = f"""
 
     let draggedNode = null;
     let offsetX = 0, offsetY = 0;
+    let nodeMoved = false;
 
     function startDrag(e, node) {{
         const pt = getSVGPoint(e);
         draggedNode = node;
+        nodeMoved = false;
         offsetX = pt.x - node.position.x;
         offsetY = pt.y - node.position.y;
         e.stopPropagation();
@@ -573,6 +701,7 @@ html_code = f"""
     svg.addEventListener('mousemove', (e) => {{
         if (draggedNode) {{
             isDirty = true;
+            nodeMoved = true;
             const pt = getSVGPoint(e);
             draggedNode.position.x = pt.x - offsetX;
             draggedNode.position.y = pt.y - offsetY;
@@ -589,11 +718,19 @@ html_code = f"""
         }}
     }});
 
-    svg.addEventListener('mouseup', () => draggedNode = null);
-    svg.addEventListener('mouseleave', () => draggedNode = null);
+    function endDrag() {{
+        // 위치 변경이 실제로 일어난 경우에만 히스토리 스택에 저장
+        if (draggedNode && nodeMoved) {{
+            pushHistory();
+        }}
+        draggedNode = null;
+        nodeMoved = false;
+    }}
+
+    svg.addEventListener('mouseup', endDrag);
+    svg.addEventListener('mouseleave', endDrag);
     svg.addEventListener('click', closeSidebar);
 
-    // 사이드바 로직
     window.openSidebarById = function(nodeId) {{
         const targetNode = appData.nodes.find(n => n.id === parseInt(nodeId));
         if (targetNode) openSidebar(targetNode);
@@ -659,8 +796,9 @@ html_code = f"""
     }}
     document.getElementById('close-btn').addEventListener('click', closeSidebar);
 
-    // 초기화 실행
+    // 최초 로딩 시 데이터 세팅 및 히스토리에 초기 상태 저장
     initData();
+    pushHistory();
     renderNetwork();
     updateViewBox();
 
