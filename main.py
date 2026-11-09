@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import json
 
 # ==========================================
@@ -8,9 +7,9 @@ import json
 st.set_page_config(page_title="역사적 사건 인과관계 지도", layout="wide")
 
 # ==========================================
-# 2. 역사 사건 원본 데이터 정의
+# 2. 원본 데이터 정의
 # ==========================================
-events_data = {
+raw_events_data = {
     "map_size": {"x": 10000, "y": 10000},
     "screen_position": {"x": 5000, "y": 5000},
     "nations": [
@@ -75,52 +74,53 @@ events_data = {
     ]
 }
 
-# ==========================================
-# 3. [PYTHON 실질 필터링 처리 로직]
-# ==========================================
+# 모든 국가 ID 초기 활성화 세션 설정
+all_nation_ids = [n["id"] for n in raw_events_data["nations"]]
+if "active_nation_ids" not in st.session_state:
+    st.session_state.active_nation_ids = all_nation_ids
 
-# 1) Python 위젯으로 선택된 국가 입력 받기
-all_nations = {n["id"]: n["name"] for n in events_data["nations"]}
-selected_nation_ids = st.multiselect(
-    "🚩 표시할 국가 선택 (Python에서 즉시 필터링 계산)",
-    options=list(all_nations.keys()),
-    format_func=lambda x: all_nations[x],
-    default=list(all_nations.keys())
-)
-
-def filter_data_in_python(raw_data, active_ids):
+# ==========================================
+# 3. [PYTHON 100% 필터링 핵심 로직]
+# ==========================================
+def filter_events_by_python(data, active_ids):
     active_set = set(active_ids)
-    
-    # Python에서 조건에 맞는 노드 추출
     filtered_nodes = []
-    for node in raw_data["nodes"]:
+    
+    # 1) Python에서 선택 국가 포함 여부로 노드 추출
+    for node in data["nodes"]:
         if any(nid in active_set for nid in node["nations"]):
-            # 원인 및 결과 사건도 필터링된 범위 내로 재계산
-            new_node = node.copy()
-            filtered_nodes.append(new_node)
+            filtered_nodes.append(node)
             
     filtered_node_ids = {n["id"] for n in filtered_nodes}
     
-    # 필터링된 결과로 새 데이터 구조 생성 (JS로는 완성된 데이터만 전달)
+    # 2) 원인/결과 연관 사건도 필터링 범위 내 노드로 재계산
+    sanitized_nodes = []
+    for node in filtered_nodes:
+        node_copy = node.copy()
+        node_copy["causes"] = [c for c in node.get("causes", []) if c in filtered_node_ids]
+        node_copy["results"] = [r for r for r in node.get("results", []) if r in filtered_node_ids]
+        sanitized_nodes.append(node_copy)
+
     return {
-        "map_size": raw_data["map_size"],
-        "screen_position": raw_data["screen_position"],
-        "nations": [n for n in raw_data["nations"] if n["id"] in active_set],
-        "nodes": filtered_nodes
+        "map_size": data["map_size"],
+        "screen_position": data["screen_position"],
+        "nations": data["nations"], # 전체 국가 데이터(칩 렌더링용)
+        "active_ids": list(active_ids), # 파이썬이 결정한 활성 국가 ID 목록
+        "nodes": sanitized_nodes
     }
 
-# Python에서 데이터 필터링 실행
-python_filtered_data = filter_data_in_python(events_data, selected_nation_ids)
-
+# Python 필터링 실행
+python_processed_data = filter_events_by_python(raw_events_data, st.session_state.active_nation_ids)
 
 # ==========================================
-# 4. HTML/CSS/JS 통합 컴포넌트 코드
+# 4. Custom Component 정의 (HTML/CSS UI 유지)
 # ==========================================
 html_code = f"""
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
+    <script src="https://cdn.jsdelivr.net/npm/streamlit-component-lib@1.4.0/dist/streamlit-component-lib.js"></script>
     <style>
         body {{
             margin: 0; padding: 0;
@@ -201,6 +201,22 @@ html_code = f"""
         
         svg {{ width: 100%; height: 100%; cursor: grab; }}
         svg:active {{ cursor: grabbing; }}
+        
+        #filter-container {{
+            position: absolute; top: 15px; right: 15px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border: 1px solid #000000; border-radius: 25px;
+            padding: 8px 20px; display: flex;
+            align-items: center; gap: 15px; z-index: 20;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }}
+        .filter-item {{
+            display: flex; align-items: center; gap: 6px;
+            cursor: pointer; font-size: 14px; font-weight: bold;
+            color: #2d3436; transition: all 0.2s; user-select: none;
+        }}
+        .filter-item.inactive {{ opacity: 0.3; }}
+        .color-circle {{ width: 14px; height: 14px; border-radius: 50%; }}
         
         .node {{ cursor: grab; transition: opacity 0.3s; }}
         .node:active {{ cursor: grabbing; }}
@@ -293,6 +309,8 @@ html_code = f"""
         <div id="divider"></div>
 
         <div id="network-container">
+            <div id="filter-container"></div>
+            
             <svg id="network">
                 <defs>
                     <marker id="arrow" viewBox="0 -5 10 10" refX="28" refY="0" markerWidth="6" markerHeight="6" orient="auto">
@@ -336,19 +354,17 @@ html_code = f"""
 <input type="file" id="file-input" accept=".json" style="display: none;">
 
 <script>
-    // Python에서 필터링이 이미 완료된 정제 데이터
-    let appData = {json.dumps(python_filtered_data)};
-    let initialData = JSON.parse(JSON.stringify(appData));
+    // Python 백엔드에서 100% 필터링되어 넘어온 전처리 데이터
+    let appData = {json.dumps(python_processed_data)};
+    let activeNations = new Set(appData.active_ids);
+
     let isDirty = false;
-    
     let isMapFocused = false;
     const borderedBox = document.getElementById('bordered-box');
 
     let draggedNode = null;
     let offsetX = 0, offsetY = 0;
-    let nodeMoved = false;
     let dragStartX = 0, dragStartY = 0;
-    let origNodeX = 0, origNodeY = 0;
     let isSignificantDrag = false;
     const DRAG_THRESHOLD = 5;
     
@@ -362,256 +378,21 @@ html_code = f"""
     }});
 
     document.addEventListener('mousedown', (e) => {{
-        if (!borderedBox.contains(e.target)) {{
-            isMapFocused = false;
-        }}
+        if (!borderedBox.contains(e.target)) isMapFocused = false;
     }});
 
     function handleDragInterrupt() {{
         if (draggedNode) {{
-            if (isSignificantDrag) {{
-                pushHistory();
-                isDirty = true;
-            }}
             draggedNode = null;
-            nodeMoved = false;
             isSignificantDrag = false;
-            checkNodeHover();
         }}
         if (isPanning) {{
             isPanning = false;
-            isDirty = true;
-            if (historyIndex >= 0) historyStack[historyIndex] = JSON.stringify(appData);
         }}
     }}
 
-    window.addEventListener('blur', () => {{
-        isMapFocused = false;
-        handleDragInterrupt();
-    }});
-    
+    window.addEventListener('blur', handleDragInterrupt);
     borderedBox.addEventListener('mouseleave', handleDragInterrupt);
-
-    let globalMouseX = -1;
-    let globalMouseY = -1;
-    let globalMouseDown = false;
-
-    window.addEventListener('mousemove', (e) => {{
-        globalMouseX = e.clientX;
-        globalMouseY = e.clientY;
-        globalMouseDown = (e.buttons > 0);
-        checkNodeHover();
-    }});
-
-    window.addEventListener('mousedown', () => {{
-        globalMouseDown = true;
-        checkNodeHover();
-    }});
-
-    window.addEventListener('mouseup', () => {{
-        globalMouseDown = false;
-        if (isPanning) {{
-            isPanning = false;
-            isDirty = true;
-            if (historyIndex >= 0) {{
-                historyStack[historyIndex] = JSON.stringify(appData);
-            }}
-        }}
-        checkNodeHover();
-    }});
-
-    window.addEventListener('focus', () => {{
-        checkNodeHover();
-    }});
-
-    window.addEventListener('mouseout', (e) => {{
-        if (e.relatedTarget === null) {{
-            document.querySelectorAll('.node').forEach(n => {{
-                if (draggedNode && nodeElements[draggedNode.id] === n) return;
-                n.classList.remove('hover-active');
-            }});
-        }}
-    }});
-
-    function checkNodeHover() {{
-        document.querySelectorAll('.node').forEach(n => {{
-            if (draggedNode && nodeElements[draggedNode.id] === n) return;
-            n.classList.remove('hover-active');
-        }});
-        
-        if (globalMouseDown || globalMouseX < 0 || globalMouseY < 0) return;
-        
-        const el = document.elementFromPoint(globalMouseX, globalMouseY);
-        if (el) {{
-            const node = el.closest('.node');
-            if (node) {{
-                node.classList.add('hover-active');
-            }}
-        }}
-    }}
-
-    let historyStack = [];
-    let historyIndex = -1;
-
-    function pushHistory() {{
-        if (historyIndex < historyStack.length - 1) {{
-            historyStack = historyStack.slice(0, historyIndex + 1);
-        }}
-        historyStack.push(JSON.stringify(appData));
-        historyIndex++;
-        updateUndoRedoMenu();
-    }}
-
-    function doUndo() {{
-        if (historyIndex > 0) {{
-            historyIndex--;
-            appData = JSON.parse(historyStack[historyIndex]);
-            initData();
-            renderNetwork();
-            updateViewBox();
-            updateUndoRedoMenu();
-        }}
-    }}
-
-    function doRedo() {{
-        if (historyIndex < historyStack.length - 1) {{
-            historyIndex++;
-            appData = JSON.parse(historyStack[historyIndex]);
-            initData();
-            renderNetwork();
-            updateViewBox();
-            updateUndoRedoMenu();
-        }}
-    }}
-
-    function updateUndoRedoMenu() {{
-        const btnUndo = document.getElementById('menu-undo');
-        const btnRedo = document.getElementById('menu-redo');
-        
-        if (historyIndex <= 0) btnUndo.classList.add('disabled');
-        else btnUndo.classList.remove('disabled');
-
-        if (historyIndex >= historyStack.length - 1) btnRedo.classList.add('disabled');
-        else btnRedo.classList.remove('disabled');
-    }}
-
-    function executeSave() {{
-        const dataStr = JSON.stringify(appData, null, 2);
-        const blob = new Blob([dataStr], {{ type: "application/json" }});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = "history_map.json";
-        a.click();
-        URL.revokeObjectURL(url);
-        isDirty = false;
-    }}
-
-    window.addEventListener('keydown', (e) => {{
-        if (e.ctrlKey || e.metaKey) {{
-            const key = e.key ? e.key.toLowerCase() : '';
-            const code = e.code;
-            if (key === 's' || key === 'ㄴ' || code === 'KeyS') {{ e.preventDefault(); executeSave(); }}
-            else if (key === 'l' || key === 'ㅣ' || code === 'KeyL') {{ e.preventDefault(); document.getElementById('file-input').click(); }}
-            else if (key === 'z' || key === 'ㅋ' || code === 'KeyZ') {{ e.preventDefault(); doUndo(); }}
-            else if (key === 'y' || key === 'ㅛ' || code === 'KeyY') {{ e.preventDefault(); doRedo(); }}
-        }}
-    }});
-
-    document.querySelectorAll('.menu-title').forEach(title => {{
-        title.addEventListener('click', (e) => {{
-            const parent = e.target.closest('.menu-item');
-            const dropdown = parent.querySelector('.menu-dropdown');
-            document.querySelectorAll('.menu-dropdown').forEach(dd => {{
-                if (dd !== dropdown) dd.classList.remove('show');
-            }});
-            dropdown.classList.toggle('show');
-            e.stopPropagation();
-        }});
-    }});
-    document.addEventListener('click', () => {{
-        document.querySelectorAll('.menu-dropdown').forEach(dd => dd.classList.remove('show'));
-    }});
-
-    document.getElementById('menu-save').addEventListener('click', executeSave);
-    document.getElementById('menu-load').addEventListener('click', () => document.getElementById('file-input').click());
-    document.getElementById('menu-undo').addEventListener('click', (e) => {{ if(!e.currentTarget.classList.contains('disabled')) doUndo(); }});
-    document.getElementById('menu-redo').addEventListener('click', (e) => {{ if(!e.currentTarget.classList.contains('disabled')) doRedo(); }});
-
-    document.getElementById('menu-reset-screen').addEventListener('click', () => {{
-        if (appData.screen_position.x !== initialData.screen_position.x || 
-            appData.screen_position.y !== initialData.screen_position.y) {{
-            appData.screen_position.x = initialData.screen_position.x;
-            appData.screen_position.y = initialData.screen_position.y;
-            updateViewBox();
-            isDirty = true;
-            pushHistory();
-        }}
-    }});
-
-    document.getElementById('menu-reset-nodes').addEventListener('click', () => {{
-        let changed = false;
-        appData.nodes.forEach(node => {{
-            const initNode = initialData.nodes.find(n => n.id === node.id);
-            if (initNode && (node.position.x !== initNode.position.x || node.position.y !== initNode.position.y)) {{
-                node.position.x = initNode.position.x;
-                node.position.y = initNode.position.y;
-                changed = true;
-            }}
-        }});
-        if (changed) {{
-            renderNetwork();
-            isDirty = true;
-            pushHistory();
-        }}
-    }});
-
-    document.getElementById('menu-reset-all').addEventListener('click', () => {{
-        let changed = false;
-        if (appData.screen_position.x !== initialData.screen_position.x || 
-            appData.screen_position.y !== initialData.screen_position.y) {{
-            appData.screen_position.x = initialData.screen_position.x;
-            appData.screen_position.y = initialData.screen_position.y;
-            changed = true;
-        }}
-        appData.nodes.forEach(node => {{
-            const initNode = initialData.nodes.find(n => n.id === node.id);
-            if (initNode && (node.position.x !== initNode.position.x || node.position.y !== initNode.position.y)) {{
-                node.position.x = initNode.position.x;
-                node.position.y = initNode.position.y;
-                changed = true;
-            }}
-        }});
-        if (changed) {{
-            updateViewBox();
-            renderNetwork();
-            isDirty = true;
-            pushHistory();
-        }}
-    }});
-
-    document.getElementById('file-input').addEventListener('change', (e) => {{
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {{
-            try {{
-                appData = JSON.parse(ev.target.result);
-                initialData = JSON.parse(JSON.stringify(appData));
-                isDirty = false;
-                historyStack = [];
-                historyIndex = -1;
-                pushHistory();
-                initData();
-                renderNetwork();
-                updateViewBox();
-            }} catch(err) {{
-                alert('파일을 불러오는데 실패했습니다. 올바른 JSON 파일인지 확인하세요.');
-            }}
-        }};
-        reader.readAsText(file);
-        e.target.value = ""; 
-    }});
 
     let nationMap = {{}};
     let edgeElements = [];
@@ -621,6 +402,7 @@ html_code = f"""
     const svg = document.getElementById('network');
     const edgesLayer = document.getElementById('edges-layer');
     const nodesLayer = document.getElementById('nodes-layer');
+    const filterContainer = document.getElementById('filter-container');
     const sidePanel = document.getElementById('side-panel');
 
     function initData() {{
@@ -628,7 +410,6 @@ html_code = f"""
         appData.nations.forEach(n => {{
             nationMap[n.id] = n;
         }});
-        
         parsedEdges = [];
         appData.nodes.forEach(node => {{
             (node.results || []).forEach(targetId => {{
@@ -640,19 +421,10 @@ html_code = f"""
     function updateViewBox() {{
         const rect = svg.parentElement.getBoundingClientRect();
         if (rect.width === 0 || rect.height === 0) return;
-        
-        let currentX = appData.screen_position.x;
-        let currentY = appData.screen_position.y;
-        
-        const maxX = appData.map_size.x - rect.width;
-        const maxY = appData.map_size.y - rect.height;
-        
-        currentX = Math.max(0, Math.min(currentX, maxX));
-        currentY = Math.max(0, Math.min(currentY, maxY));
-        
+        let currentX = Math.max(0, Math.min(appData.screen_position.x, appData.map_size.x - rect.width));
+        let currentY = Math.max(0, Math.min(appData.screen_position.y, appData.map_size.y - rect.height));
         appData.screen_position.x = currentX;
         appData.screen_position.y = currentY;
-        
         svg.setAttribute('viewBox', `${{appData.screen_position.x}} ${{appData.screen_position.y}} ${{rect.width}} ${{rect.height}}`);
     }}
     window.addEventListener('resize', updateViewBox);
@@ -660,7 +432,6 @@ html_code = f"""
     function createPieSlices(g, nationIds, radius) {{
         const sortedIds = [...nationIds].sort((a, b) => a - b);
         const count = sortedIds.length;
-
         if (count === 1) {{
             const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             circle.setAttribute('r', radius);
@@ -675,19 +446,15 @@ html_code = f"""
                 const y1 = radius * Math.sin(startAngle);
                 const x2 = radius * Math.cos(endAngle);
                 const y2 = radius * Math.sin(endAngle);
-
                 const largeArcFlag = angleStep > Math.PI ? 1 : 0;
                 const pathData = `M 0 0 L ${{x1}} ${{y1}} A ${{radius}} ${{radius}} 0 ${{largeArcFlag}} 1 ${{x2}} ${{y2}} Z`;
-                
                 const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 path.setAttribute('d', pathData);
                 path.setAttribute('fill', nationMap[sortedIds[i]] ? nationMap[sortedIds[i]].color : '#95a5a6');
-                
                 g.appendChild(path);
                 startAngle = endAngle;
             }}
         }}
-
         const borderCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         borderCircle.setAttribute('r', radius);
         borderCircle.setAttribute('class', 'node-border');
@@ -695,11 +462,36 @@ html_code = f"""
     }}
 
     function renderNetwork() {{
+        filterContainer.innerHTML = '';
         edgesLayer.innerHTML = '';
         nodesLayer.innerHTML = '';
         edgeElements = [];
         nodeElements = {{}};
+        
+        // 칩 필터 UI 렌더링
+        appData.nations.forEach(nItem => {{
+            const item = document.createElement('div');
+            const isActive = activeNations.has(nItem.id);
+            item.className = `filter-item ${{isActive ? 'active' : 'inactive'}}`;
+            item.innerHTML = `
+                <div class="color-circle" style="background-color: ${{nItem.color}};"></div>
+                <span>${{nItem.name}}</span>
+            `;
+            item.addEventListener('click', () => {{
+                if (activeNations.has(nItem.id)) {{
+                    activeNations.delete(nItem.id);
+                }} else {{
+                    activeNations.add(nItem.id);
+                }}
+                // ★ 필터 칩 클릭 시 파이썬 백엔드로 설정 상태 송신 ★
+                if (window.Streamlit) {{
+                    window.Streamlit.setComponentValue(Array.from(activeNations));
+                }}
+            }});
+            filterContainer.appendChild(item);
+        }});
 
+        // 연결선(Edge) 렌더링
         parsedEdges.forEach(edge => {{
             const sourceNode = appData.nodes.find(n => n.id === edge.source);
             const targetNode = appData.nodes.find(n => n.id === edge.target);
@@ -716,6 +508,7 @@ html_code = f"""
             }}
         }});
 
+        // 노드(Node) 렌더링
         appData.nodes.forEach(node => {{
             const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             g.setAttribute('class', 'node');
@@ -737,7 +530,6 @@ html_code = f"""
             nodesLayer.appendChild(g);
             
             nodeElements[node.id] = g;
-
             g.addEventListener('mousedown', (e) => startDrag(e, node));
         }});
     }}
@@ -765,17 +557,15 @@ html_code = f"""
         e.preventDefault();
         const pt = getSVGPoint(e);
         draggedNode = node;
-        nodeMoved = false;
         isSignificantDrag = false;
-        
         dragStartX = pt.x;
         dragStartY = pt.y;
-        origNodeX = node.position.x;
-        origNodeY = node.position.y;
         offsetX = pt.x - node.position.x;
         offsetY = pt.y - node.position.y;
         
-        nodeElements[node.id].classList.add('hover-active');
+        if (nodeElements[node.id]) {{
+            nodeElements[node.id].classList.add('hover-active');
+        }}
         isMapFocused = true;
         window.focus();
         e.stopPropagation();
@@ -783,39 +573,31 @@ html_code = f"""
 
     borderedBox.addEventListener('mousemove', (e) => {{
         if (e.buttons === 0 || !isMapFocused) {{
-            if (draggedNode || isPanning) {{
-                handleDragInterrupt();
-            }}
+            if (draggedNode || isPanning) handleDragInterrupt();
             return;
         }}
 
         if (draggedNode) {{
             const pt = getSVGPoint(e);
-            
             const dx = pt.x - dragStartX;
             const dy = pt.y - dragStartY;
             
             if (!isSignificantDrag) {{
                 if (Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {{
                     isSignificantDrag = true;
-                    isDirty = true;
                 }} else {{
                     return; 
                 }}
             }}
             
-            nodeMoved = true;
-            
-            let newX = pt.x - offsetX;
-            let newY = pt.y - offsetY;
-            
-            const limit = 50;
-            newX = Math.max(limit, Math.min(newX, appData.map_size.x - limit));
-            newY = Math.max(limit, Math.min(newY, appData.map_size.y - limit));
+            let newX = Math.max(50, Math.min(pt.x - offsetX, appData.map_size.x - 50));
+            let newY = Math.max(50, Math.min(pt.y - offsetY, appData.map_size.y - 50));
             
             draggedNode.position.x = newX;
             draggedNode.position.y = newY;
-            nodeElements[draggedNode.id].setAttribute('transform', `translate(${{draggedNode.position.x}}, ${{draggedNode.position.y}})`);
+            if (nodeElements[draggedNode.id]) {{
+                nodeElements[draggedNode.id].setAttribute('transform', `translate(${{draggedNode.position.x}}, ${{draggedNode.position.y}})`);
+            }}
             
             edgeElements.forEach(edge => {{
                 if (edge.source.id === draggedNode.id || edge.target.id === draggedNode.id) {{
@@ -826,40 +608,22 @@ html_code = f"""
                 }}
             }});
         }} else if (isPanning) {{
-            const dx = e.clientX - panStartX;
-            const dy = e.clientY - panStartY;
-            
-            let newX = panStartScreenX - dx;
-            let newY = panStartScreenY - dy;
-            
-            appData.screen_position.x = newX;
-            appData.screen_position.y = newY;
+            appData.screen_position.x = panStartScreenX - (e.clientX - panStartX);
+            appData.screen_position.y = panStartScreenY - (e.clientY - panStartY);
             updateViewBox();
         }}
     }});
 
-    function endDrag() {{
+    borderedBox.addEventListener('mouseup', () => {{
         if (draggedNode) {{
-            if (isSignificantDrag) {{
-                pushHistory();
-            }} else {{
-                openSidebar(draggedNode);
-            }}
-            
+            if (!isSignificantDrag) openSidebar(draggedNode);
             draggedNode = null;
-            nodeMoved = false;
             isSignificantDrag = false;
-            
-            checkNodeHover();
         }}
-    }}
+    }});
 
-    borderedBox.addEventListener('mouseup', endDrag);
-    
     svg.addEventListener('click', (e) => {{
-        if (!e.target.closest('.node')) {{
-            closeSidebar();
-        }}
+        if (!e.target.closest('.node')) closeSidebar();
     }});
 
     window.openSidebarById = function(nodeId) {{
@@ -904,38 +668,31 @@ html_code = f"""
         }}
 
         sidePanel.classList.add('open');
-
-        edgeElements.forEach(e => {{
-            if (e.target.id === node.id) {{
-                e.line.style.stroke = '#e74c3c';
-                e.line.setAttribute('marker-end', 'url(#arrow-cause)');
-            }} else if (e.source.id === node.id) {{
-                e.line.style.stroke = '#0984e3';
-                e.line.setAttribute('marker-end', 'url(#arrow-result)');
-            }} else {{
-                e.line.style.stroke = '#b2bec3';
-                e.line.setAttribute('marker-end', 'url(#arrow)');
-            }}
-        }});
     }}
 
     function closeSidebar() {{
         sidePanel.classList.remove('open');
-        edgeElements.forEach(e => {{
-            e.line.style.stroke = '#b2bec3';
-            e.line.setAttribute('marker-end', 'url(#arrow)');
-        }});
     }}
     document.getElementById('close-btn').addEventListener('click', closeSidebar);
 
     initData();
-    pushHistory();
     renderNetwork();
     updateViewBox();
 
+    if (window.Streamlit) {{
+        window.Streamlit.setComponentReady();
+    }}
 </script>
 </body>
 </html>
 """
 
-components.html(html_code, height=900, scrolling=False)
+# ==========================================
+# 5. Component 실행 및 파이썬 필터 바인딩
+# ==========================================
+new_active_ids = components.html(html_code, height=900, scrolling=False)
+
+# 사용자가 칩 UI를 클릭했을 때 수신받은 파이썬 이벤트 처리
+if new_active_ids is not None and set(new_active_ids) != set(st.session_state.active_nation_ids):
+    st.session_state.active_nation_ids = new_active_ids
+    st.rerun()
