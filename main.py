@@ -1,5 +1,6 @@
-import streamlit as st
 import json
+import streamlit as st
+import streamlit.components.v1 as components
 
 # ==========================================
 # 1. 스트림릿 페이지 설정
@@ -18,60 +19,110 @@ raw_events_data = {
         {"id": 3, "name": "신라", "color": "#2980b9"},
         {"id": 4, "name": "당", "color": "#c0392b"},
         {"id": 5, "name": "수", "color": "#8e44ad"},
-        {"id": 6, "name": "대가야", "color": "#7f8c8d"}
+        {"id": 6, "name": "대가야", "color": "#7f8c8d"},
     ],
     "nodes": [
         {
-            "id": 1, "name": "성왕의 한강 수복", "position": {"x": 5100, "y": 5150}, "year": 551,
+            "id": 1,
+            "name": "성왕의 한강 수복",
+            "position": {"x": 5100, "y": 5150},
+            "year": 551,
             "description": "백제 성왕이 신라 진흥왕과 연합하여 고구려를 공격, 한강 하류 유역을 수복한 사건입니다.",
-            "causes": [], "results": [2], "nations": [1, 2, 3]
+            "causes": [],
+            "results": [2],
+            "nations": [1, 2, 3],
         },
         {
-            "id": 2, "name": "진흥왕의 한강 차지", "position": {"x": 5300, "y": 5150}, "year": 553,
+            "id": 2,
+            "name": "진흥왕의 한강 차지",
+            "position": {"x": 5300, "y": 5150},
+            "year": 553,
             "description": "신라 진흥왕이 나제동맹을 깨고 기습적으로 백제를 공격하여 한강 유역을 독차지하고 신주를 설치했습니다.",
-            "causes": [1], "results": [3], "nations": [2, 3]
+            "causes": [1],
+            "results": [3],
+            "nations": [2, 3],
         },
         {
-            "id": 3, "name": "관산성 전투", "position": {"x": 5500, "y": 5150}, "year": 554,
+            "id": 3,
+            "name": "관산성 전투",
+            "position": {"x": 5500, "y": 5150},
+            "year": 554,
             "description": "신라의 배신에 분노한 백제 성왕이 대가야와 연합하여 신라를 공격했으나, 관산성에서 전사하고 대패한 전투입니다.",
-            "causes": [2], "results": [6], "nations": [2, 3, 6]
+            "causes": [2],
+            "results": [6],
+            "nations": [2, 3, 6],
         },
         {
-            "id": 4, "name": "살수대첩", "position": {"x": 5100, "y": 5350}, "year": 612,
+            "id": 4,
+            "name": "살수대첩",
+            "position": {"x": 5100, "y": 5350},
+            "year": 612,
             "description": "고구려의 을지문덕이 살수(청천강)에서 수나라의 30만 별동대를 크게 물리친 전투입니다.",
-            "causes": [], "results": [5], "nations": [1, 5]
+            "causes": [],
+            "results": [5],
+            "nations": [1, 5],
         },
         {
-            "id": 5, "name": "안시성 전투", "position": {"x": 5300, "y": 5350}, "year": 645,
+            "id": 5,
+            "name": "안시성 전투",
+            "position": {"x": 5300, "y": 5350},
+            "year": 645,
             "description": "고구려 안시성에서 당나라 태종의 대군을 맞아 약 88일간의 치열한 공방전 끝에 당군을 물리친 전투입니다.",
-            "causes": [4], "results": [6], "nations": [1, 4]
+            "causes": [4],
+            "results": [6],
+            "nations": [1, 4],
         },
         {
-            "id": 6, "name": "나당 동맹 체결", "position": {"x": 5500, "y": 5250}, "year": 648,
+            "id": 6,
+            "name": "나당 동맹 체결",
+            "position": {"x": 5500, "y": 5250},
+            "year": 648,
             "description": "백제의 잦은 공격으로 위기에 처한 신라(김춘추)가 당나라로 건너가 고구려와 백제를 멸망시키기 위한 군사 동맹을 맺은 사건입니다.",
-            "causes": [3, 5], "results": [7, 9], "nations": [3, 4]
+            "causes": [3, 5],
+            "results": [7, 9],
+            "nations": [3, 4],
         },
         {
-            "id": 7, "name": "황산벌 전투", "position": {"x": 5700, "y": 5150}, "year": 660,
+            "id": 7,
+            "name": "황산벌 전투",
+            "position": {"x": 5700, "y": 5150},
+            "year": 660,
             "description": "나당 연합군이 백제를 공격하자, 계백 장군이 이끄는 5천 결사대가 황산벌에서 김유신의 5만 신라군에 맞서 싸운 전투입니다.",
-            "causes": [6], "results": [8], "nations": [2, 3, 4]
+            "causes": [6],
+            "results": [8],
+            "nations": [2, 3, 4],
         },
         {
-            "id": 8, "name": "백제 멸망", "position": {"x": 5900, "y": 5150}, "year": 660,
+            "id": 8,
+            "name": "백제 멸망",
+            "position": {"x": 5900, "y": 5150},
+            "year": 660,
             "description": "황산벌 전투 패배 후 사비성이 나당 연합군에게 함락되며 의자왕이 항복, 백제가 멸망하게 됩니다.",
-            "causes": [7], "results": [9, 10], "nations": [2, 3, 4]
+            "causes": [7],
+            "results": [9, 10],
+            "nations": [2, 3, 4],
         },
         {
-            "id": 9, "name": "고구려 멸망", "position": {"x": 5900, "y": 5350}, "year": 668,
+            "id": 9,
+            "name": "고구려 멸망",
+            "position": {"x": 5900, "y": 5350},
+            "year": 668,
             "description": "오랜 전쟁과 연개소문 사후의 내분으로 국력이 약해진 고구려가 나당 연합군의 공격을 받고 평양성이 함락되며 멸망했습니다.",
-            "causes": [6, 8], "results": [10], "nations": [1, 3, 4]
+            "causes": [6, 8],
+            "results": [10],
+            "nations": [1, 3, 4],
         },
         {
-            "id": 10, "name": "기벌포 해전", "position": {"x": 6100, "y": 5250}, "year": 676,
+            "id": 10,
+            "name": "기벌포 해전",
+            "position": {"x": 6100, "y": 5250},
+            "year": 676,
             "description": "신라가 한반도 전체를 지배하려는 당나라에 맞서 싸운 나당 전쟁의 마지막 전투. 기벌포에서 당의 수군을 궤멸시켜 삼국통일을 완수했습니다.",
-            "causes": [8, 9], "results": [], "nations": [3, 4]
-        }
-    ]
+            "causes": [8, 9],
+            "results": [],
+            "nations": [3, 4],
+        },
+    ],
 }
 
 # 모든 국가 ID 초기 활성화 세션 설정
@@ -79,38 +130,46 @@ all_nation_ids = [n["id"] for n in raw_events_data["nations"]]
 if "active_nation_ids" not in st.session_state:
     st.session_state.active_nation_ids = all_nation_ids
 
+
 # ==========================================
 # 3. [PYTHON 100% 필터링 핵심 로직]
 # ==========================================
 def filter_events_by_python(data, active_ids):
     active_set = set(active_ids)
     filtered_nodes = []
-    
+
     # 1) Python에서 선택 국가 포함 여부로 노드 추출
     for node in data["nodes"]:
         if any(nid in active_set for nid in node["nations"]):
             filtered_nodes.append(node)
-            
+
     filtered_node_ids = {n["id"] for n in filtered_nodes}
-    
-    # 2) 원인/결과 연관 사건도 필터링 범위 내 노드로 재계산
+
+    # 2) 원인/결과 연관 사건도 필터링 범위 내 노드로 재계산 (SyntaxError 구문 수정 완료)
     sanitized_nodes = []
     for node in filtered_nodes:
         node_copy = node.copy()
-        node_copy["causes"] = [c for c in node.get("causes", []) if c in filtered_node_ids]
-        node_copy["results"] = [r for r for r in node.get("results", []) if r in filtered_node_ids]
+        node_copy["causes"] = [
+            c for c in node.get("causes", []) if c in filtered_node_ids
+        ]
+        node_copy["results"] = [
+            r for r in node.get("results", []) if r in filtered_node_ids
+        ]
         sanitized_nodes.append(node_copy)
 
     return {
         "map_size": data["map_size"],
         "screen_position": data["screen_position"],
-        "nations": data["nations"], # 전체 국가 데이터(칩 렌더링용)
-        "active_ids": list(active_ids), # 파이썬이 결정한 활성 국가 ID 목록
-        "nodes": sanitized_nodes
+        "nations": data["nations"],  # 전체 국가 데이터(칩 렌더링용)
+        "active_ids": list(active_ids),  # 파이썬이 결정한 활성 국가 ID 목록
+        "nodes": sanitized_nodes,
     }
 
+
 # Python 필터링 실행
-python_processed_data = filter_events_by_python(raw_events_data, st.session_state.active_nation_ids)
+python_processed_data = filter_events_by_python(
+    raw_events_data, st.session_state.active_nation_ids
+)
 
 # ==========================================
 # 4. Custom Component 정의 (HTML/CSS UI 유지)
@@ -354,7 +413,6 @@ html_code = f"""
 <input type="file" id="file-input" accept=".json" style="display: none;">
 
 <script>
-    // Python 백엔드에서 100% 필터링되어 넘어온 전처리 데이터
     let appData = {json.dumps(python_processed_data)};
     let activeNations = new Set(appData.active_ids);
 
@@ -468,7 +526,6 @@ html_code = f"""
         edgeElements = [];
         nodeElements = {{}};
         
-        // 칩 필터 UI 렌더링
         appData.nations.forEach(nItem => {{
             const item = document.createElement('div');
             const isActive = activeNations.has(nItem.id);
@@ -483,7 +540,6 @@ html_code = f"""
                 }} else {{
                     activeNations.add(nItem.id);
                 }}
-                // ★ 필터 칩 클릭 시 파이썬 백엔드로 설정 상태 송신 ★
                 if (window.Streamlit) {{
                     window.Streamlit.setComponentValue(Array.from(activeNations));
                 }}
@@ -491,7 +547,6 @@ html_code = f"""
             filterContainer.appendChild(item);
         }});
 
-        // 연결선(Edge) 렌더링
         parsedEdges.forEach(edge => {{
             const sourceNode = appData.nodes.find(n => n.id === edge.source);
             const targetNode = appData.nodes.find(n => n.id === edge.target);
@@ -508,7 +563,6 @@ html_code = f"""
             }}
         }});
 
-        // 노드(Node) 렌더링
         appData.nodes.forEach(node => {{
             const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             g.setAttribute('class', 'node');
@@ -693,6 +747,8 @@ html_code = f"""
 new_active_ids = components.html(html_code, height=900, scrolling=False)
 
 # 사용자가 칩 UI를 클릭했을 때 수신받은 파이썬 이벤트 처리
-if new_active_ids is not None and set(new_active_ids) != set(st.session_state.active_nation_ids):
+if new_active_ids is not None and set(new_active_ids) != set(
+    st.session_state.active_nation_ids
+):
     st.session_state.active_nation_ids = new_active_ids
     st.rerun()
