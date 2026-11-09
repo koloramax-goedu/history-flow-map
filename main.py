@@ -104,18 +104,51 @@ class NodeMapController:
         return json.dumps(self.app_data, ensure_ascii=False, indent=2).encode('utf-8')
 
     def load_from_json(self, json_string):
+        """JSON 데이터 수신 및 예외 처리 구문 검증"""
         try:
+            # 1. JSON 구문 분석 (문법 오류 검출)
             loaded_data = json.loads(json_string)
+            
+            # 2. 최상위 데이터 타입 검사
+            if not isinstance(loaded_data, dict):
+                return False, "JSON 파일의 최상위 구조가 올바른 객체(Dict) 형식이 아닙니다."
+            
+            # 3. 필수 필수 최상위 키 존재 여부 확인
+            required_keys = ["map_size", "screen_position", "nations", "nodes"]
+            missing_keys = [k for k in required_keys if k not in loaded_data]
+            if missing_keys:
+                return False, f"필수 데이터 키가 누락되었습니다: {', '.join(missing_keys)}"
+            
+            # 4. 세부 구조 검증 (nodes, nations 타입 검사)
+            if not isinstance(loaded_data["nodes"], list) or not isinstance(loaded_data["nations"], list):
+                return False, "'nodes' 및 'nations' 항목은 배열(List) 형태여야 합니다."
+
+            # 5. 각 노드의 필수 속성 검증
+            for idx, node in enumerate(loaded_data["nodes"]):
+                if not isinstance(node, dict):
+                    return False, f"노드 목록의 {idx + 1}번째 항목이 객체 형식이 아닙니다."
+                
+                req_node_keys = ["id", "name", "position"]
+                missing_node_keys = [k for k in req_node_keys if k not in node]
+                if missing_node_keys:
+                    return False, f"노드({node.get('name', f'index {idx}')})에 필수 속성이 누락되었습니다: {', '.join(missing_node_keys)}"
+                
+                if not isinstance(node["position"], dict) or "x" not in node["position"] or "y" not in node["position"]:
+                    return False, f"노드({node.get('name', f'index {idx}')})의 좌표(position x, y) 형식이 올바르지 않습니다."
+
+            # 예외 검증 통과 후 데이터 업데이트
             self.app_data = loaded_data
             self.initial_data = copy.deepcopy(loaded_data)
             self.is_dirty = False
             self.history_stack = []
             self.history_index = -1
             self.push_history()
-            return True
+            return True, "성공적으로 파일 데이터를 불러왔증니다."
+
+        except json.JSONDecodeError as e:
+            return False, f"JSON 파일 문법에 오류가 있습니다. (행: {e.lineno}, 열: {e.colno})"
         except Exception as e:
-            st.error(f"파일 불러오기 실패: {e}")
-            return False
+            return False, f"파일 검증 중 처리할 수 없는 오류가 발생했습니다: {str(e)}"
 
 # ==========================================
 # 2. 스트림릿 페이지 설정 및 초기화
@@ -236,7 +269,6 @@ with st.container():
         m_col1, m_col2, m_col3 = st.columns(3)
         with m_col1:
             with st.popover("파일"):
-                # 파이썬 로직 기반 다운로드 버튼
                 st.download_button(
                     label="저장하기",
                     data=controller.get_json_bytes(),
@@ -244,12 +276,22 @@ with st.container():
                     mime="application/json",
                     use_container_width=True
                 )
-                # 파이썬 로직 기반 파일 업로더
+                
+                # 파일 업로드 및 예외 처리
                 uploaded_file = st.file_uploader("불러오기", type=["json"], label_visibility="collapsed")
                 if uploaded_file is not None:
-                    file_content = uploaded_file.read().decode('utf-8')
-                    if controller.load_from_json(file_content):
-                        st.session_state.js_action = {"type": "reload_data"}
+                    try:
+                        file_content = uploaded_file.read().decode('utf-8')
+                        success, message = controller.load_from_json(file_content)
+                        if success:
+                            st.session_state.js_action = {"type": "reload_data"}
+                        else:
+                            st.error(message)
+                    except UnicodeDecodeError:
+                        st.error("파일 인코딩 오류: UTF-8 형식의 텍스트 파일만 읽을 수 있습니다.")
+                    except Exception as e:
+                        st.error(f"파일을 읽는 도중 오류가 발생했습니다: {e}")
+
         with m_col2:
             with st.popover("명령"):
                 if st.button("실행 취소", use_container_width=True):
@@ -355,7 +397,7 @@ with st.container():
         let dragStartX = 0, dragStartY = 0;
         let offsetX = 0, offsetY = 0;
         let isSignificantDrag = false;
-        const DRAG_THRESHOLD = 5; // 5px 임계값 명세 적용
+        const DRAG_THRESHOLD = 5;
         
         let isPanning = false; 
         let panStartX = 0, panStartY = 0; 
@@ -493,7 +535,6 @@ with st.container():
             return pt.matrixTransform(svg.getScreenCTM().inverse());
         }}
 
-        // 노드 클릭/드래그 시작 (명세 1)
         function startDrag(e, node) {{
             e.preventDefault(); 
             const pt = getSVGPoint(e); 
@@ -507,17 +548,14 @@ with st.container():
             e.stopPropagation();
         }}
 
-        // 마우스 이동 처리 (명세 2, 3-2)
         document.getElementById('bordered-box').addEventListener('mousemove', (e) => {{
             if (draggedNode) {{
                 const pt = getSVGPoint(e); 
                 const dx = pt.x - dragStartX; 
                 const dy = pt.y - dragStartY;
                 
-                // 2. 피타고라스 정리로 이동 거리 계산
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                // 3-2. 임계값(5px) 초과 시 드래그 상태 전환 및 경계 범위 제한
                 if (!isSignificantDrag) {{
                     if (distance > DRAG_THRESHOLD) {{
                         isSignificantDrag = true;
@@ -551,14 +589,11 @@ with st.container():
             }}
         }});
 
-        // 마우스 업 (명세 3-1, 4)
         document.getElementById('bordered-box').addEventListener('mouseup', () => {{
             if (draggedNode) {{
-                // 3-1. 5px 미만 이동시 단일 클릭 판정 -> 우측 세부 정보 탭 열기
                 if (!isSignificantDrag) {{
                     openSidebar(draggedNode);
                 }}
-                // 4. 드래그 종료 후 최종 위치 확정
                 draggedNode = null; 
                 isSignificantDrag = false;
             }}
@@ -616,7 +651,6 @@ with st.container():
             if (targetNode) openSidebar(targetNode);
         }};
 
-        // Python과의 이벤트를 통동한 동기화
         window.parent.document.addEventListener("streamlit_update", (e) => {{
             const data = e.detail;
             if (data.activeNations) {{
