@@ -5,11 +5,11 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 # ==========================================
-# 1. 페이지 설정 및 데이터 초기화
+# 1. 페이지 설정 및 초기 데이터 (Single Source of Truth)
 # ==========================================
 st.set_page_config(page_title="역사적 사건 인과관계 지도", layout="wide")
 
-DEFAULT_EVENTS_DATA = {
+INITIAL_EVENTS_DATA = {
     "map_size": {"x": 10000, "y": 10000},
     "screen_position": {"x": 5000, "y": 5000},
     "nations": [
@@ -34,51 +34,58 @@ DEFAULT_EVENTS_DATA = {
     ]
 }
 
-# Session State 기반 상태 & Undo/Redo 히스토리 관리 (Python 로직 소유)
+# ==========================================
+# 2. Python 기반 핵심 비즈니스 로직 & 히스토리 스택
+# ==========================================
 if 'events_data' not in st.session_state:
-    st.session_state.events_data = json.loads(json.dumps(DEFAULT_EVENTS_DATA))
+    st.session_state.events_data = json.loads(json.dumps(INITIAL_EVENTS_DATA))
 if 'history' not in st.session_state:
-    st.session_state.history = [json.loads(json.dumps(DEFAULT_EVENTS_DATA))]
+    st.session_state.history = [json.loads(json.dumps(INITIAL_EVENTS_DATA))]
 if 'history_idx' not in st.session_state:
     st.session_state.history_idx = 0
 if 'active_nations' not in st.session_state:
-    st.session_state.active_nations = {n['id']: True for n in DEFAULT_EVENTS_DATA['nations']}
+    st.session_state.active_nations = {n['id']: True for n in INITIAL_EVENTS_DATA['nations']}
 
-# 히스토리 기록 함수 (파이썬 로직)
 def push_history():
+    """상태 변경 시 Python 스택에 Undo 히스토리 저장"""
     st.session_state.history = st.session_state.history[:st.session_state.history_idx + 1]
     st.session_state.history.append(json.loads(json.dumps(st.session_state.events_data)))
     st.session_state.history_idx += 1
 
 def do_undo():
+    """실행 취소 (Undo)"""
     if st.session_state.history_idx > 0:
         st.session_state.history_idx -= 1
         st.session_state.events_data = json.loads(json.dumps(st.session_state.history[st.session_state.history_idx]))
 
 def do_redo():
+    """다시 실행 (Redo)"""
     if st.session_state.history_idx < len(st.session_state.history) - 1:
         st.session_state.history_idx += 1
         st.session_state.events_data = json.loads(json.dumps(st.session_state.history[st.session_state.history_idx]))
 
 def reset_screen():
-    st.session_state.events_data['screen_position']['x'] = DEFAULT_EVENTS_DATA['screen_position']['x']
-    st.session_state.events_data['screen_position']['y'] = DEFAULT_EVENTS_DATA['screen_position']['y']
+    """화면 위치 초기화"""
+    st.session_state.events_data['screen_position']['x'] = INITIAL_EVENTS_DATA['screen_position']['x']
+    st.session_state.events_data['screen_position']['y'] = INITIAL_EVENTS_DATA['screen_position']['y']
     push_history()
 
 def reset_nodes():
+    """노드 위치 초기화"""
     for node in st.session_state.events_data['nodes']:
-        init_node = next((n for n in DEFAULT_EVENTS_DATA['nodes'] if n['id'] == node['id']), None)
+        init_node = next((n for n in INITIAL_EVENTS_DATA['nodes'] if n['id'] == node['id']), None)
         if init_node:
             node['position']['x'] = init_node['position']['x']
             node['position']['y'] = init_node['position']['y']
     push_history()
 
 def reset_all():
-    st.session_state.events_data = json.loads(json.dumps(DEFAULT_EVENTS_DATA))
+    """전체 초기화"""
+    st.session_state.events_data = json.loads(json.dumps(INITIAL_EVENTS_DATA))
     push_history()
 
 # ==========================================
-# 2. 디자인 적용을 위한 커스텀 CSS (기존 디자인 100% 유지)
+# 3. 기존 커스텀 CSS (디자인 100% 유지)
 # ==========================================
 st.markdown("""
 <style>
@@ -140,7 +147,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 3. 상단 UI: Python 제어 영역
+# 4. 상단 UI: Python 기반 제어 컨트롤러
 # ==========================================
 st.markdown('<div id="main-container-anchor"></div>', unsafe_allow_html=True)
 
@@ -154,7 +161,7 @@ with st.container():
         m_col1, m_col2, m_col3 = st.columns(3)
         with m_col1:
             with st.popover("파일"):
-                # 파이썬 Native 다운로드/업로드 로직 적용
+                # 파이썬 Native 다운로드 & 파일 업로드 연결
                 st.download_button(
                     label="저장하기",
                     data=json.dumps(st.session_state.events_data, indent=2, ensure_ascii=False),
@@ -170,7 +177,7 @@ with st.container():
                         push_history()
                         st.rerun()
                     except Exception:
-                        st.error("JSON 파일을 읽는 중 오류가 발생했습니다.")
+                        st.error("JSON 파일 형식이 올바르지 않습니다.")
         with m_col2:
             with st.popover("명령"):
                 st.button("실행 취소", use_container_width=True, on_click=do_undo, disabled=(st.session_state.history_idx <= 0))
@@ -195,14 +202,13 @@ with st.container():
     st.markdown("<hr style='margin: 0; border: none; border-top: 2px solid #e2e8f0;'>", unsafe_allow_html=True)
 
 # ==========================================
-# 4. Streamlit 양방향 Custom Component 구성
+# 5. 하단 지도: Custom Component (JS Pure Renderer)
 # ==========================================
-COMPONENT_DIR = os.path.join(tempfile.gettempdir(), "streamlit_history_map_component")
+COMPONENT_DIR = os.path.join(tempfile.gettempdir(), "streamlit_history_map_comp")
 os.makedirs(COMPONENT_DIR, exist_ok=True)
 index_html_path = os.path.join(COMPONENT_DIR, "index.html")
 
-# JS 렌더러 소스 코드 작성 (UI/애니메이션 디자인 복원 & Streamlit API 연결)
-html_code = """
+html_content = """
 <!DOCTYPE html>
 <html>
 <head>
@@ -303,7 +309,7 @@ html_code = """
     Streamlit.events.addEventListener(Streamlit.RENDER_EVENT, onRender);
     Streamlit.init();
 
-    // 단축키 이벤트를 파이썬 액션으로 전송
+    // 단축키 이벤트 (Ctrl+Z, Ctrl+Y) -> Python 이벤트 전달
     window.addEventListener('keydown', (e) => {
         if (e.ctrlKey || e.metaKey) {
             const key = e.key ? e.key.toLowerCase() : '';
@@ -493,7 +499,7 @@ html_code = """
     borderedBox.addEventListener('mouseup', () => {
         if (draggedNode) {
             if (isSignificantDrag) {
-                // 노드 이동 완료 알림을 Python으로 전송
+                // 노드 이동 완료 시 Python으로 결과 좌표 송신
                 Streamlit.setComponentValue({
                     action: 'node_move',
                     node_id: draggedNode.id,
@@ -566,14 +572,13 @@ html_code = """
 """
 
 with open(index_html_path, "w", encoding="utf-8") as f:
-    f.write(html_code)
+    f.write(html_content)
 
 history_map_component = components.declare_component("history_map_component", path=COMPONENT_DIR)
 
-# 활성화된 국가 ID 리스트
 active_ids = [k for k, v in st.session_state.active_nations.items() if v]
 
-# Custom Component 호출 (Python -> JS 데이터 전파 & JS -> Python 이벤트 반응)
+# JS 렌더러 호출 및 수신 데이터 획득
 event = history_map_component(
     events_data=st.session_state.events_data,
     active_nations=active_ids,
@@ -581,7 +586,7 @@ event = history_map_component(
 )
 
 # ==========================================
-# 5. JavaScript 수신 이벤트 처리 (파이썬 비즈니스 로직 연동)
+# 6. JavaScript 이벤트 ➔ Python 로직 실행 처리
 # ==========================================
 if event:
     action = event.get("action")
