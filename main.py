@@ -104,7 +104,15 @@ html_code = f"""
             border: 1px solid #000000;
             border-radius: 8px; overflow: hidden;
             position: relative; background-color: #ffffff;
+            transition: outline 0.2s ease;
         }}
+        
+        /* 제목과 메뉴 부분을 포함하는 전체 영역 포커스 효과 */
+        #bordered-box.focused {{
+            outline: 2px solid #0984e3;
+            outline-offset: -2px;
+        }}
+
         #title-area {{
             flex: 0 0 55px; width: 100%;
             background-color: #ffffff;
@@ -157,15 +165,8 @@ html_code = f"""
             flex: 1; position: relative;
             overflow: hidden; background-color: #ffffff;
             box-sizing: border-box;
-            transition: outline 0.2s ease;
         }}
         
-        /* 지도 포커스 상태 시각적 효과 */
-        #network-container.focused {{
-            outline: 2px solid #0984e3;
-            outline-offset: -2px;
-        }}
-
         svg {{ width: 100%; height: 100%; cursor: default; }}
         
         #filter-container {{
@@ -250,14 +251,13 @@ html_code = f"""
                 <div class="menu-item">
                     <div class="menu-title">파일</div>
                     <div class="menu-dropdown">
-                        <div class="dropdown-item" id="menu-save"><span>저장하기</span><span class="shortcut-text">Ctrl+C</span></div>
+                        <div class="dropdown-item" id="menu-save"><span>저장하기</span><span class="shortcut-text">Ctrl+S</span></div>
                         <div class="dropdown-item" id="menu-load"><span>불러오기</span><span class="shortcut-text">Ctrl+L</span></div>
                     </div>
                 </div>
                 <div class="menu-item">
                     <div class="menu-title">명령</div>
                     <div class="menu-dropdown">
-                        <!-- 명령 메뉴에서 불필요한 빈 항목 제거 -->
                         <div class="dropdown-item disabled" id="menu-undo"><span>실행 취소</span><span class="shortcut-text">Ctrl+Z</span></div>
                         <div class="dropdown-item disabled" id="menu-redo"><span>다시 실행</span><span class="shortcut-text">Ctrl+Y</span></div>
                     </div>
@@ -268,12 +268,6 @@ html_code = f"""
                         <div class="dropdown-item"><span>빈 항목 1</span></div>
                         <div class="dropdown-item"><span>빈 항목 2</span></div>
                         <div class="dropdown-item"><span>빈 항목 3</span></div>
-                    </div>
-                </div>
-                <div class="menu-item">
-                    <div class="menu-title">기타</div>
-                    <div class="menu-dropdown">
-                        <div class="dropdown-item"><span>빈 항목 1</span></div>
                     </div>
                 </div>
             </div>
@@ -333,26 +327,27 @@ html_code = f"""
     
     // 포커스 상태 관리 변수
     let isMapFocused = false;
-    const networkContainer = document.getElementById('network-container');
+    const borderedBox = document.getElementById('bordered-box');
 
-    // 지도 영역 클릭 시 포커스 획득
-    networkContainer.addEventListener('mousedown', () => {{
+    // 앱 영역 전체(제목/메뉴 포함) 클릭 시 포커스 획득
+    borderedBox.addEventListener('mousedown', () => {{
         isMapFocused = true;
-        networkContainer.classList.add('focused');
+        borderedBox.classList.add('focused');
     }});
 
-    // 지도 영역 외부 클릭 시 포커스 해제
+    // 앱 영역 외부 클릭 시 포커스 해제
     document.addEventListener('mousedown', (e) => {{
-        if (!networkContainer.contains(e.target)) {{
+        if (!borderedBox.contains(e.target)) {{
             isMapFocused = false;
-            networkContainer.classList.remove('focused');
+            borderedBox.classList.remove('focused');
         }}
     }});
 
-    // 브라우저 탭/창 전환 시 포커스 해제
+    // 브라우저 탭/창 전환 시 포커스 해제 및 드래그 풀림
     window.addEventListener('blur', () => {{
         isMapFocused = false;
-        networkContainer.classList.remove('focused');
+        borderedBox.classList.remove('focused');
+        endDrag();
     }});
 
     // 히스토리 (실행 취소/다시 실행) 관리를 위한 변수
@@ -428,15 +423,15 @@ html_code = f"""
     }}
 
     window.addEventListener('keydown', (e) => {{
-        // 지도가 포커스 상태일 때만 브라우저 고유 기능 덮어쓰기
+        // 포커스 상태일 때만 지정된 단축키 실행
         if (!isMapFocused) return;
 
         if (e.ctrlKey) {{
             const key = e.key.toLowerCase();
-            if (['c', 'l', 'z', 'y'].includes(key)) {{
-                e.preventDefault(); // 브라우저 고유의 단축키 동작 무시
+            if (['s', 'l', 'z', 'y'].includes(key)) {{
+                e.preventDefault(); // 브라우저 기본 동작 차단 (Alt+Tab 등은 영향 받지 않음)
 
-                if (key === 'c') {{
+                if (key === 's') {{
                     if (!saveCooldown) {{
                         executeSave();
                         saveCooldown = true;
@@ -671,7 +666,6 @@ html_code = f"""
             
             nodeElements[node.id] = g;
 
-            // 노드 밖에서 클릭한 후 드래그 시 아무 일도 없도록 마우스 다운 이벤트 설정
             g.addEventListener('mousedown', (e) => startDrag(e, node));
             g.addEventListener('click', (e) => {{
                 openSidebar(node);
@@ -715,7 +709,6 @@ html_code = f"""
     let nodeMoved = false;
 
     function startDrag(e, node) {{
-        // 기본 드래그(텍스트 블록 지정 등) 동작 차단
         e.preventDefault();
         const pt = getSVGPoint(e);
         draggedNode = node;
@@ -753,7 +746,6 @@ html_code = f"""
         nodeMoved = false;
     }}
 
-    // 마우스 버튼에서 손을 떼거나 커서가 지도 바깥으로 나가면 드래그 종료
     svg.addEventListener('mouseup', endDrag);
     svg.addEventListener('mouseleave', endDrag);
     svg.addEventListener('click', closeSidebar);
