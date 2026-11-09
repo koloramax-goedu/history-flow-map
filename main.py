@@ -160,7 +160,8 @@ html_code = f"""
             box-sizing: border-box;
         }}
         
-        svg {{ width: 100%; height: 100%; cursor: default; }}
+        svg {{ width: 100%; height: 100%; cursor: grab; }}
+        svg:active {{ cursor: grabbing; }}
         
         #filter-container {{
             position: absolute; top: 15px; right: 15px;
@@ -186,7 +187,6 @@ html_code = f"""
             stroke: #fff; stroke-width: 3px; fill: none;
             transition: stroke-width 0.2s, stroke 0.2s;
         }}
-        /* 마우스 클릭 여부 및 포커스와 독립적으로 작동하는 자바스크립트 제어 Hover 클래스 */
         .node.hover-active .node-border {{ stroke-width: 5px; stroke: #333; }}
         
         .node text {{
@@ -261,9 +261,9 @@ html_code = f"""
                 <div class="menu-item">
                     <div class="menu-title">화면</div>
                     <div class="menu-dropdown">
-                        <div class="dropdown-item"><span>빈 항목 1</span></div>
-                        <div class="dropdown-item"><span>빈 항목 2</span></div>
-                        <div class="dropdown-item"><span>빈 항목 3</span></div>
+                        <div class="dropdown-item" id="menu-reset-screen"><span>화면 위치 초기화</span></div>
+                        <div class="dropdown-item" id="menu-reset-nodes"><span>노드 위치 초기화</span></div>
+                        <div class="dropdown-item" id="menu-reset-all"><span>화면 전체 초기화</span></div>
                     </div>
                 </div>
             </div>
@@ -318,12 +318,13 @@ html_code = f"""
 
 <script>
     let appData = {json.dumps(events_data)};
+    let initialData = JSON.parse(JSON.stringify(appData));
     let isDirty = false;
     
     let isMapFocused = false;
     const borderedBox = document.getElementById('bordered-box');
 
-    // 드래그 관련 변수 미리 선언
+    // 노드 드래그 관련 변수
     let draggedNode = null;
     let offsetX = 0, offsetY = 0;
     let nodeMoved = false;
@@ -331,6 +332,11 @@ html_code = f"""
     let origNodeX = 0, origNodeY = 0;
     let isSignificantDrag = false;
     const DRAG_THRESHOLD = 5;
+    
+    // 화면 드래그(패닝) 관련 변수
+    let isPanning = false;
+    let panStartX = 0, panStartY = 0;
+    let panStartScreenX = 0, panStartScreenY = 0;
 
     borderedBox.addEventListener('mousedown', () => {{
         isMapFocused = true;
@@ -342,33 +348,31 @@ html_code = f"""
         }}
     }});
 
-    // 창 전환(blur)이나 영역 이탈 시 드래그를 취소하고 탭 열림을 방지하는 함수
-    function cancelDrag() {{
+    // 창 전환(blur)이나 영역 이탈 시 드래그를 확정/종료하는 함수
+    function handleDragInterrupt() {{
         if (draggedNode) {{
             if (nodeMoved) {{
-                draggedNode.position.x = origNodeX;
-                draggedNode.position.y = origNodeY;
-                nodeElements[draggedNode.id].setAttribute('transform', `translate(${{origNodeX}}, ${{origNodeY}})`);
-                edgeElements.forEach(edge => {{
-                    if (edge.source.id === draggedNode.id || edge.target.id === draggedNode.id) {{
-                        edge.line.setAttribute('x1', edge.source.position.x);
-                        edge.line.setAttribute('y1', edge.source.position.y);
-                        edge.line.setAttribute('x2', edge.target.position.x);
-                        edge.line.setAttribute('y2', edge.target.position.y);
-                    }}
-                }});
+                pushHistory();
+                isDirty = true;
             }}
             draggedNode = null;
             nodeMoved = false;
             isSignificantDrag = false;
             checkNodeHover();
         }}
+        if (isPanning) {{
+            isPanning = false;
+            isDirty = true;
+            if (historyIndex >= 0) historyStack[historyIndex] = JSON.stringify(appData);
+        }}
     }}
 
     window.addEventListener('blur', () => {{
         isMapFocused = false;
-        cancelDrag();
+        handleDragInterrupt();
     }});
+    
+    borderedBox.addEventListener('mouseleave', handleDragInterrupt);
 
     // 글로벌 마우스 상태 추적
     let globalMouseX = -1;
@@ -389,6 +393,13 @@ html_code = f"""
 
     window.addEventListener('mouseup', () => {{
         globalMouseDown = false;
+        if (isPanning) {{
+            isPanning = false;
+            isDirty = true;
+            if (historyIndex >= 0) {{
+                historyStack[historyIndex] = JSON.stringify(appData);
+            }}
+        }}
         checkNodeHover();
     }});
 
@@ -399,7 +410,6 @@ html_code = f"""
     window.addEventListener('mouseout', (e) => {{
         if (e.relatedTarget === null) {{
             document.querySelectorAll('.node').forEach(n => {{
-                // 드래그 중인 노드는 제외
                 if (draggedNode && nodeElements[draggedNode.id] === n) return;
                 n.classList.remove('hover-active');
             }});
@@ -408,12 +418,10 @@ html_code = f"""
 
     function checkNodeHover() {{
         document.querySelectorAll('.node').forEach(n => {{
-            // 드래그 중이거나 미세 클릭 판정 대기 중인 노드의 외곽선 유지를 위해 생략
             if (draggedNode && nodeElements[draggedNode.id] === n) return;
             n.classList.remove('hover-active');
         }});
         
-        // 클릭/드래그가 시작된 상태면 새로운 hover 상태 탐지 중단
         if (globalMouseDown || globalMouseX < 0 || globalMouseY < 0) return;
         
         const el = document.elementFromPoint(globalMouseX, globalMouseY);
@@ -443,6 +451,7 @@ html_code = f"""
             appData = JSON.parse(historyStack[historyIndex]);
             initData();
             renderNetwork();
+            updateViewBox();
             updateUndoRedoMenu();
         }}
     }}
@@ -453,6 +462,7 @@ html_code = f"""
             appData = JSON.parse(historyStack[historyIndex]);
             initData();
             renderNetwork();
+            updateViewBox();
             updateUndoRedoMenu();
         }}
     }}
@@ -574,6 +584,59 @@ html_code = f"""
         if(!e.currentTarget.classList.contains('disabled')) doRedo();
     }});
 
+    // 화면 및 노드 초기화 관련 이벤트
+    document.getElementById('menu-reset-screen').addEventListener('click', () => {{
+        if (appData.screen_position.x !== initialData.screen_position.x || 
+            appData.screen_position.y !== initialData.screen_position.y) {{
+            appData.screen_position.x = initialData.screen_position.x;
+            appData.screen_position.y = initialData.screen_position.y;
+            updateViewBox();
+            isDirty = true;
+            pushHistory();
+        }}
+    }});
+
+    document.getElementById('menu-reset-nodes').addEventListener('click', () => {{
+        let changed = false;
+        appData.nodes.forEach(node => {{
+            const initNode = initialData.nodes.find(n => n.id === node.id);
+            if (initNode && (node.position.x !== initNode.position.x || node.position.y !== initNode.position.y)) {{
+                node.position.x = initNode.position.x;
+                node.position.y = initNode.position.y;
+                changed = true;
+            }}
+        }});
+        if (changed) {{
+            renderNetwork();
+            isDirty = true;
+            pushHistory();
+        }}
+    }});
+
+    document.getElementById('menu-reset-all').addEventListener('click', () => {{
+        let changed = false;
+        if (appData.screen_position.x !== initialData.screen_position.x || 
+            appData.screen_position.y !== initialData.screen_position.y) {{
+            appData.screen_position.x = initialData.screen_position.x;
+            appData.screen_position.y = initialData.screen_position.y;
+            changed = true;
+        }}
+        appData.nodes.forEach(node => {{
+            const initNode = initialData.nodes.find(n => n.id === node.id);
+            if (initNode && (node.position.x !== initNode.position.x || node.position.y !== initNode.position.y)) {{
+                node.position.x = initNode.position.x;
+                node.position.y = initNode.position.y;
+                changed = true;
+            }}
+        }});
+        if (changed) {{
+            updateViewBox();
+            renderNetwork();
+            isDirty = true;
+            pushHistory();
+        }}
+    }});
+
     document.getElementById('file-input').addEventListener('change', (e) => {{
         const file = e.target.files[0];
         if (!file) return;
@@ -581,6 +644,7 @@ html_code = f"""
         reader.onload = (ev) => {{
             try {{
                 appData = JSON.parse(ev.target.result);
+                initialData = JSON.parse(JSON.stringify(appData));
                 isDirty = false;
                 
                 historyStack = [];
@@ -628,6 +692,20 @@ html_code = f"""
 
     function updateViewBox() {{
         const rect = svg.parentElement.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+        
+        let currentX = appData.screen_position.x;
+        let currentY = appData.screen_position.y;
+        
+        const maxX = appData.map_size.x - rect.width;
+        const maxY = appData.map_size.y - rect.height;
+        
+        currentX = Math.max(0, Math.min(currentX, maxX));
+        currentY = Math.max(0, Math.min(currentY, maxY));
+        
+        appData.screen_position.x = currentX;
+        appData.screen_position.y = currentY;
+        
         svg.setAttribute('viewBox', `${{appData.screen_position.x}} ${{appData.screen_position.y}} ${{rect.width}} ${{rect.height}}`);
     }}
     window.addEventListener('resize', updateViewBox);
@@ -767,6 +845,17 @@ html_code = f"""
         pt.y = evt.clientY;
         return pt.matrixTransform(svg.getScreenCTM().inverse());
     }}
+    
+    // 배경(화면) 드래그 시작
+    svg.addEventListener('mousedown', (e) => {{
+        if (!e.target.closest('.node')) {{
+            isPanning = true;
+            panStartX = e.clientX;
+            panStartY = e.clientY;
+            panStartScreenX = appData.screen_position.x;
+            panStartScreenY = appData.screen_position.y;
+        }}
+    }});
 
     function startDrag(e, node) {{
         e.preventDefault();
@@ -786,7 +875,7 @@ html_code = f"""
         e.stopPropagation();
     }}
 
-    // 마우스 이동 범위를 svg 전체 영역에서 메뉴/제목을 포함한 borderedBox 영역으로 확장
+    // 마우스 이동 처리 (노드 드래그 및 화면 패닝)
     borderedBox.addEventListener('mousemove', (e) => {{
         if (draggedNode) {{
             const pt = getSVGPoint(e);
@@ -811,18 +900,25 @@ html_code = f"""
                     edge.line.setAttribute('y2', edge.target.position.y);
                 }}
             }});
+        }} else if (isPanning) {{
+            const dx = e.clientX - panStartX;
+            const dy = e.clientY - panStartY;
+            
+            let newX = panStartScreenX - dx;
+            let newY = panStartScreenY - dy;
+            
+            appData.screen_position.x = newX;
+            appData.screen_position.y = newY;
+            updateViewBox(); // 내부에서 이동 경계 제한을 자동으로 처리
         }}
     }});
 
     function endDrag() {{
         if (draggedNode) {{
             if (nodeMoved && isSignificantDrag) {{
-                // 유의미한 드래그 발생 시 내역 저장
                 pushHistory();
             }} else {{
-                // 미세한 움직임이거나 움직임이 없을 때 사이드바 오픈 (클릭 처리)
                 if (nodeMoved) {{
-                    // 미세한 움직임으로 인한 위치 변경은 완전히 무효화 (실행 취소에 기록 안 함)
                     draggedNode.position.x = origNodeX;
                     draggedNode.position.y = origNodeY;
                     nodeElements[draggedNode.id].setAttribute('transform', `translate(${{origNodeX}}, ${{origNodeY}})`);
@@ -842,17 +938,12 @@ html_code = f"""
             nodeMoved = false;
             isSignificantDrag = false;
             
-            checkNodeHover(); // 마우스를 놓았을 때 Hover 상태 갱신
+            checkNodeHover();
         }}
     }}
 
-    // 마우스를 떼는 동작도 메뉴 및 제목 영역(borderedBox)까지 확장하여 인식
     borderedBox.addEventListener('mouseup', endDrag);
     
-    // 전체 지도 영역 밖으로 마우스가 나가는 경우는 사이드바를 띄우지 않고 드래그 취소
-    borderedBox.addEventListener('mouseleave', cancelDrag);
-    
-    // 노드가 아닌 빈 배경 클릭 시에만 사이드바를 닫음 (단순 클릭 오작동 해결)
     svg.addEventListener('click', (e) => {{
         if (!e.target.closest('.node')) {{
             closeSidebar();
