@@ -747,8 +747,7 @@ html_code = f"""
 new_active_ids = components.html(html_code, height=900, scrolling=False)
 
 # 사용자가 칩 UI를 클릭했을 때 수신받은 파이썬 이벤트 처리
-if new_active_ids is not None and set(new_active_ids) != set(
-    st.session_state.active_nation_ids
-):
-    st.session_state.active_nation_ids = new_active_ids
-    st.rerun()
+if isinstance(new_active_ids, (list, tuple)):
+    if set(new_active_ids) != set(st.session_state.active_nation_ids):
+        st.session_state.active_nation_ids = new_active_ids
+        st.rerun()
