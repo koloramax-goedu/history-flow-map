@@ -339,4 +339,329 @@ with st.container():
                     <div class="badge" id="panel-year"></div>
                     <h2 id="panel-title"></h2>
                     <p class="desc" id="panel-desc"></p>
-                    <div class
+                    <div class="info-group"><div class="info-label">🚩 관련 국가</div><div class="info-value" id="panel-nations"></div></div>
+                    <div class="info-group"><div class="info-label">🔻 원인 사건 (이전)</div><div class="info-value" id="panel-causes"></div></div>
+                    <div class="info-group"><div class="info-label">🔹 결과 사건 (이후)</div><div class="info-value" id="panel-results"></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let appData = {json.dumps(controller.app_data)};
+        let initialData = JSON.parse(JSON.stringify(appData));
+        
+        let draggedNode = null;
+        let dragStartX = 0, dragStartY = 0;
+        let offsetX = 0, offsetY = 0;
+        let isSignificantDrag = false;
+        const DRAG_THRESHOLD = 5; // 5px 임계값 명세 적용
+        
+        let isPanning = false; 
+        let panStartX = 0, panStartY = 0; 
+        let panStartScreenX = 0, panStartScreenY = 0;
+
+        let nationMap = {{}}; 
+        let activeNations = new Set();
+        let edgeElements = []; 
+        let nodeElements = {{}}; 
+        let parsedEdges = [];
+
+        const svg = document.getElementById('network');
+        const edgesLayer = document.getElementById('edges-layer');
+        const nodesLayer = document.getElementById('nodes-layer');
+        const sidePanel = document.getElementById('side-panel');
+
+        function initData() {{
+            nationMap = {{}};
+            appData.nations.forEach(n => {{ nationMap[n.id] = n; }});
+            parsedEdges = [];
+            appData.nodes.forEach(node => {{
+                (node.results || []).forEach(targetId => {{ parsedEdges.push({{ source: node.id, target: targetId }}); }});
+            }});
+        }}
+
+        function updateViewBox() {{
+            const rect = svg.parentElement.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) return;
+            let currentX = appData.screen_position.x; 
+            let currentY = appData.screen_position.y;
+            const maxX = appData.map_size.x - rect.width; 
+            const maxY = appData.map_size.y - rect.height;
+            currentX = Math.max(0, Math.min(currentX, maxX)); 
+            currentY = Math.max(0, Math.min(currentY, maxY));
+            appData.screen_position.x = currentX; 
+            appData.screen_position.y = currentY;
+            svg.setAttribute('viewBox', `${{appData.screen_position.x}} ${{appData.screen_position.y}} ${{rect.width}} ${{rect.height}}`);
+        }}
+
+        function createPieSlices(g, nationIds, radius) {{
+            const sortedIds = [...nationIds].sort((a, b) => a - b); 
+            const count = sortedIds.length;
+            if (count === 1) {{
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('r', radius); 
+                circle.setAttribute('fill', nationMap[sortedIds[0]] ? nationMap[sortedIds[0]].color : '#95a5a6');
+                g.appendChild(circle);
+            }} else {{
+                let startAngle = -Math.PI / 2; 
+                const angleStep = (2 * Math.PI) / count;
+                for (let i = 0; i < count; i++) {{
+                    const endAngle = startAngle + angleStep;
+                    const x1 = radius * Math.cos(startAngle); 
+                    const y1 = radius * Math.sin(startAngle);
+                    const x2 = radius * Math.cos(endAngle); 
+                    const y2 = radius * Math.sin(endAngle);
+                    const largeArcFlag = angleStep > Math.PI ? 1 : 0;
+                    const pathData = `M 0 0 L ${{x1}} ${{y1}} A ${{radius}} ${{radius}} 0 ${{largeArcFlag}} 1 ${{x2}} ${{y2}} Z`;
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.setAttribute('d', pathData); 
+                    path.setAttribute('fill', nationMap[sortedIds[i]] ? nationMap[sortedIds[i]].color : '#95a5a6');
+                    g.appendChild(path); 
+                    startAngle = endAngle;
+                }}
+            }}
+            const borderCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            borderCircle.setAttribute('r', radius); 
+            borderCircle.setAttribute('class', 'node-border');
+            g.appendChild(borderCircle);
+        }}
+
+        function renderNetwork() {{
+            edgesLayer.innerHTML = ''; 
+            nodesLayer.innerHTML = '';
+            edgeElements = []; 
+            nodeElements = {{}};
+            parsedEdges.forEach(edge => {{
+                const sourceNode = appData.nodes.find(n => n.id === edge.source); 
+                const targetNode = appData.nodes.find(n => n.id === edge.target);
+                if(sourceNode && targetNode) {{
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('class', 'edge'); 
+                    line.setAttribute('marker-end', 'url(#arrow)');
+                    line.setAttribute('x1', sourceNode.position.x); 
+                    line.setAttribute('y1', sourceNode.position.y);
+                    line.setAttribute('x2', targetNode.position.x); 
+                    line.setAttribute('y2', targetNode.position.y);
+                    edgesLayer.appendChild(line); 
+                    edgeElements.push({{ line, source: sourceNode, target: targetNode }});
+                }}
+            }});
+            appData.nodes.forEach(node => {{
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('class', 'node'); 
+                g.setAttribute('transform', `translate(${{node.position.x}}, ${{node.position.y}})`);
+                createPieSlices(g, node.nations, 20);
+                const textTitle = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                textTitle.setAttribute('y', 38); 
+                textTitle.textContent = node.name;
+                const textYear = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                textYear.setAttribute('class', 'year'); 
+                textYear.setAttribute('y', 53); 
+                textYear.textContent = node.year;
+                g.appendChild(textTitle); 
+                g.appendChild(textYear); 
+                nodesLayer.appendChild(g);
+                nodeElements[node.id] = g;
+                g.addEventListener('mousedown', (e) => startDrag(e, node));
+            }});
+            updateFilters();
+        }}
+
+        function updateFilters() {{
+            appData.nodes.forEach(node => {{
+                const isActive = node.nations.some(id => activeNations.has(id));
+                const g = nodeElements[node.id];
+                if (isActive) {{ 
+                    g.classList.remove('dimmed'); 
+                }} else {{ 
+                    g.classList.add('dimmed'); 
+                    if (sidePanel.classList.contains('open') && document.getElementById('panel-title').textContent === node.name) closeSidebar(); 
+                }}
+            }});
+            edgeElements.forEach(e => {{
+                const sourceDimmed = nodeElements[e.source.id].classList.contains('dimmed');
+                const targetDimmed = nodeElements[e.target.id].classList.contains('dimmed');
+                if (!sourceDimmed && !targetDimmed) e.line.classList.remove('dimmed'); else e.line.classList.add('dimmed');
+            }});
+        }}
+
+        function getSVGPoint(evt) {{
+            const pt = svg.createSVGPoint(); 
+            pt.x = evt.clientX; 
+            pt.y = evt.clientY;
+            return pt.matrixTransform(svg.getScreenCTM().inverse());
+        }}
+
+        // 노드 클릭/드래그 시작 (명세 1)
+        function startDrag(e, node) {{
+            e.preventDefault(); 
+            const pt = getSVGPoint(e); 
+            draggedNode = node; 
+            isSignificantDrag = false;
+            dragStartX = pt.x; 
+            dragStartY = pt.y; 
+            offsetX = pt.x - node.position.x; 
+            offsetY = pt.y - node.position.y;
+            nodeElements[node.id].classList.add('hover-active'); 
+            e.stopPropagation();
+        }}
+
+        // 마우스 이동 처리 (명세 2, 3-2)
+        document.getElementById('bordered-box').addEventListener('mousemove', (e) => {{
+            if (draggedNode) {{
+                const pt = getSVGPoint(e); 
+                const dx = pt.x - dragStartX; 
+                const dy = pt.y - dragStartY;
+                
+                // 2. 피타고라스 정리로 이동 거리 계산
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                // 3-2. 임계값(5px) 초과 시 드래그 상태 전환 및 경계 범위 제한
+                if (!isSignificantDrag) {{
+                    if (distance > DRAG_THRESHOLD) {{
+                        isSignificantDrag = true;
+                    }} else return;
+                }}
+
+                let newX = pt.x - offsetX; 
+                let newY = pt.y - offsetY;
+                const limit = 50; 
+                newX = Math.max(limit, Math.min(newX, appData.map_size.x - limit)); 
+                newY = Math.max(limit, Math.min(newY, appData.map_size.y - limit));
+                
+                draggedNode.position.x = newX; 
+                draggedNode.position.y = newY;
+                nodeElements[draggedNode.id].setAttribute('transform', `translate(${{draggedNode.position.x}}, ${{draggedNode.position.y}})`);
+                
+                edgeElements.forEach(edge => {{
+                    if (edge.source.id === draggedNode.id || edge.target.id === draggedNode.id) {{
+                        edge.line.setAttribute('x1', edge.source.position.x); 
+                        edge.line.setAttribute('y1', edge.source.position.y);
+                        edge.line.setAttribute('x2', edge.target.position.x); 
+                        edge.line.setAttribute('y2', edge.target.position.y);
+                    }}
+                }});
+            }} else if (isPanning) {{
+                const dx = e.clientX - panStartX; 
+                const dy = e.clientY - panStartY;
+                appData.screen_position.x = panStartScreenX - dx; 
+                appData.screen_position.y = panStartScreenY - dy;
+                updateViewBox();
+            }}
+        }});
+
+        // 마우스 업 (명세 3-1, 4)
+        document.getElementById('bordered-box').addEventListener('mouseup', () => {{
+            if (draggedNode) {{
+                // 3-1. 5px 미만 이동시 단일 클릭 판정 -> 우측 세부 정보 탭 열기
+                if (!isSignificantDrag) {{
+                    openSidebar(draggedNode);
+                }}
+                // 4. 드래그 종료 후 최종 위치 확정
+                draggedNode = null; 
+                isSignificantDrag = false;
+            }}
+            if (isPanning) isPanning = false;
+        }});
+
+        svg.addEventListener('mousedown', (e) => {{
+            if (e.button !== 0) return;
+            if (!e.target.closest('.node')) {{
+                isPanning = true; 
+                panStartX = e.clientX; 
+                panStartY = e.clientY;
+                panStartScreenX = appData.screen_position.x; 
+                panStartScreenY = appData.screen_position.y;
+                e.preventDefault();
+            }}
+        }});
+
+        function openSidebar(node) {{
+            document.getElementById('panel-title').textContent = node.name;
+            document.getElementById('panel-year').textContent = node.year; 
+            document.getElementById('panel-desc').textContent = node.description;
+            const sortedIds = [...node.nations].sort((a,b) => a-b);
+            document.getElementById('panel-nations').textContent = sortedIds.map(id => nationMap[id].name).join(', ');
+
+            const causesHTML = (node.causes && node.causes.length > 0) 
+                ? node.causes.map(id => {{ const n = appData.nodes.find(x => x.id === id); return `• <a href="#" class="event-link" onclick="openSidebarById('${{n.id}}'); return false;">${{n.name}}</a>`; }}).join('<br>') 
+                : '<span style="color:#b2bec3;">없음 (시작 사건)</span>';
+            document.getElementById('panel-causes').innerHTML = causesHTML;
+
+            const resultsHTML = (node.results && node.results.length > 0) 
+                ? node.results.map(id => {{ const n = appData.nodes.find(x => x.id === id); return `• <a href="#" class="event-link" onclick="openSidebarById('${{n.id}}'); return false;">${{n.name}}</a>`; }}).join('<br>') 
+                : '<span style="color:#b2bec3;">없음 (마지막 사건)</span>';
+            document.getElementById('panel-results').innerHTML = resultsHTML;
+
+            const stripe = document.getElementById('panel-stripe');
+            if (sortedIds.length === 1) {{ 
+                stripe.style.background = nationMap[sortedIds[0]].color; 
+            }} else {{
+                const step = 100 / sortedIds.length;
+                const colorStops = sortedIds.map((id, idx) => `${{nationMap[id].color}} ${{(idx * step).toFixed(2)}}% ${{((idx + 1) * step).toFixed(2)}}%`);
+                stripe.style.background = `linear-gradient(to bottom, ${{colorStops.join(', ')}})`;
+            }}
+
+            sidePanel.classList.add('open');
+        }}
+
+        function closeSidebar() {{
+            sidePanel.classList.remove('open');
+        }}
+        document.getElementById('close-btn').addEventListener('click', closeSidebar);
+
+        window.openSidebarById = function(nodeId) {{
+            const targetNode = appData.nodes.find(n => n.id === parseInt(nodeId));
+            if (targetNode) openSidebar(targetNode);
+        }};
+
+        // Python과의 이벤트를 통동한 동기화
+        window.parent.document.addEventListener("streamlit_update", (e) => {{
+            const data = e.detail;
+            if (data.activeNations) {{
+                activeNations = new Set(data.activeNations);
+                updateFilters();
+            }}
+            if (data.action) {{
+                const action = data.action.type;
+                if (action === "reload_data") {{
+                    location.reload();
+                }}
+            }}
+        }});
+
+        initData();
+        activeNations = new Set({json.dumps([k for k, v in st.session_state.active_nations.items() if v])});
+        renderNetwork();
+        updateViewBox();
+        window.addEventListener('resize', updateViewBox);
+    </script>
+    </body>
+    </html>
+    """
+    
+    components.html(html_code, height=750, scrolling=False)
+
+# ==========================================
+# 6. 세션 상태 동기화
+# ==========================================
+active_ids = [k for k, v in st.session_state.active_nations.items() if v]
+current_action = st.session_state.js_action
+
+st.markdown(f"""
+<script>
+    setTimeout(() => {{
+        const evt = new CustomEvent("streamlit_update", {{
+            detail: {{
+                activeNations: {json.dumps(active_ids)},
+                action: {json.dumps(current_action)}
+            }}
+        }});
+        window.parent.document.dispatchEvent(evt);
+    }}, 100);
+</script>
+""", unsafe_allow_html=True)
+
+if current_action is not None:
+    st.session_state.js_action = None
