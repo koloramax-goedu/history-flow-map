@@ -351,7 +351,7 @@ html_code = f"""
     // 창 전환(blur)이나 영역 이탈 시 드래그를 확정/종료하는 함수
     function handleDragInterrupt() {{
         if (draggedNode) {{
-            if (nodeMoved) {{
+            if (isSignificantDrag) {{
                 pushHistory();
                 isDirty = true;
             }}
@@ -874,6 +874,7 @@ html_code = f"""
         offsetY = pt.y - node.position.y;
         
         nodeElements[node.id].classList.add('hover-active');
+        isMapFocused = true; // [조건 1 적용] 노드 클릭 시 바로 맵 포커스 활성화
         e.stopPropagation();
     }}
 
@@ -892,9 +893,15 @@ html_code = f"""
             
             const dx = pt.x - dragStartX;
             const dy = pt.y - dragStartY;
-            if (Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {{
-                isSignificantDrag = true;
-                isDirty = true;
+            
+            // [조건 2 적용] 임계치를 넘기 전까지는 이동을 무시하고 반환 (시각적으로 노드가 이동하지 않음)
+            if (!isSignificantDrag) {{
+                if (Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {{
+                    isSignificantDrag = true;
+                    isDirty = true;
+                }} else {{
+                    return; 
+                }}
             }}
             
             nodeMoved = true;
@@ -934,22 +941,10 @@ html_code = f"""
 
     function endDrag() {{
         if (draggedNode) {{
-            if (nodeMoved && isSignificantDrag) {{
+            // [조건 2 적용] 실질적인 드래그가 발생한 경우만 상태를 기록하고, 아니면 정보 패널 열기
+            if (isSignificantDrag) {{
                 pushHistory();
             }} else {{
-                if (nodeMoved) {{
-                    draggedNode.position.x = origNodeX;
-                    draggedNode.position.y = origNodeY;
-                    nodeElements[draggedNode.id].setAttribute('transform', `translate(${{origNodeX}}, ${{origNodeY}})`);
-                    edgeElements.forEach(edge => {{
-                        if (edge.source.id === draggedNode.id || edge.target.id === draggedNode.id) {{
-                            edge.line.setAttribute('x1', edge.source.position.x);
-                            edge.line.setAttribute('y1', edge.source.position.y);
-                            edge.line.setAttribute('x2', edge.target.position.x);
-                            edge.line.setAttribute('y2', edge.target.position.y);
-                        }}
-                    }});
-                }}
                 openSidebar(draggedNode);
             }}
             
