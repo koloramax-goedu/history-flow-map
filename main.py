@@ -41,11 +41,11 @@ def set_action(action_type):
     st.session_state.js_action = {"type": action_type}
 
 # ==========================================
-# 2. 디자인 적용 커스텀 CSS (완전한 디자인 유지)
+# 2. 커스텀 CSS (캡슐 테두리 제거 및 원형 디자인)
 # ==========================================
 st.markdown("""
 <style>
-/* 1) 전체 외곽 직사각형 테두리 결합 */
+/* 1) 전체 외곽 테두리 레이아웃 */
 #main-container-anchor + div > div[data-testid="stVerticalBlock"] {
     border: 1px solid #000000;
     border-radius: 8px;
@@ -55,9 +55,9 @@ st.markdown("""
     overflow: hidden;
 }
 
-/* 2) 상단 UI 영역 */
+/* 2) 상단 UI 패딩 및 배치 */
 #main-container-anchor + div > div[data-testid="stVerticalBlock"] > div:first-child {
-    padding: 12px 20px;
+    padding: 10px 20px;
     align-items: center;
     background-color: #ffffff;
 }
@@ -78,18 +78,7 @@ st.markdown("""
     background-color: #dfe6e9 !important;
 }
 
-/* 4) 단일 알약/캡슐 바 필터 스타일링 */
-.filter-bar-box {
-    background-color: rgba(255, 255, 255, 0.95);
-    border: 1px solid #000000;
-    border-radius: 25px;
-    padding: 5px 15px;
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-}
-
+/* 4) Python 필터링 UI (캡슐 테두리 완전히 제거) */
 [data-testid="stCheckbox"] {
     background: transparent !important;
     border: none !important;
@@ -97,6 +86,7 @@ st.markdown("""
     margin: 0 !important;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     transition: opacity 0.2s;
 }
 [data-testid="stCheckbox"] div[role="checkbox"],
@@ -118,7 +108,7 @@ st.markdown("""
     opacity: 0.3;
 }
 
-/* 첨부 이미지와 '완전히 동일한' 순수 CSS 원형 기호 스타일 */
+/* 국가별 원형 기호 커스텀 */
 .filter-n1 label p::before { content: ""; display: inline-block; width: 14px; height: 14px; border-radius: 50%; background-color: #27ae60; flex-shrink: 0; }
 .filter-n2 label p::before { content: ""; display: inline-block; width: 14px; height: 14px; border-radius: 50%; background-color: #f39c12; flex-shrink: 0; }
 .filter-n3 label p::before { content: ""; display: inline-block; width: 14px; height: 14px; border-radius: 50%; background-color: #2980b9; flex-shrink: 0; }
@@ -134,7 +124,7 @@ st.markdown("""
 st.markdown('<div id="main-container-anchor"></div>', unsafe_allow_html=True)
 
 with st.container():
-    col_title, col_menu, col_filter = st.columns([1.4, 1.3, 3.8], gap="small")
+    col_title, col_menu, col_filter = st.columns([1.5, 1.4, 3.6], gap="small")
     
     with col_title:
         st.markdown("<h1 style='font-size: 22px; font-weight: 900; color: #2d3436; margin: 4px 0 0 0; white-space: nowrap;'>역사적 사건 인과관계 지도</h1>", unsafe_allow_html=True)
@@ -143,29 +133,27 @@ with st.container():
         m_col1, m_col2, m_col3 = st.columns(3)
         with m_col1:
             with st.popover("파일"):
-                st.button("저장하기", use_container_width=True, on_click=set_action, args=("save",))
-                st.button("불러오기", use_container_width=True, on_click=set_action, args=("load",))
+                st.button("저장하기", key="btn_save", use_container_width=True, on_click=set_action, args=("save",))
+                st.button("불러오기", key="btn_load", use_container_width=True, on_click=set_action, args=("load",))
         with m_col2:
             with st.popover("명령"):
-                st.button("실행 취소", use_container_width=True, on_click=set_action, args=("undo",))
-                st.button("다시 실행", use_container_width=True, on_click=set_action, args=("redo",))
+                st.button("실행 취소", key="btn_undo", use_container_width=True, on_click=set_action, args=("undo",))
+                st.button("다시 실행", key="btn_redo", use_container_width=True, on_click=set_action, args=("redo",))
         with m_col3:
             with st.popover("화면"):
-                st.button("화면 위치 초기화", use_container_width=True, on_click=set_action, args=("reset_screen",))
-                st.button("노드 위치 초기화", use_container_width=True, on_click=set_action, args=("reset_nodes",))
-                st.button("화면 전체 초기화", use_container_width=True, on_click=set_action, args=("reset_all",))
+                st.button("화면 위치 초기화", key="btn_reset_screen", use_container_width=True, on_click=set_action, args=("reset_screen",))
+                st.button("노드 위치 초기화", key="btn_reset_nodes", use_container_width=True, on_click=set_action, args=("reset_nodes",))
+                st.button("화면 전체 초기화", key="btn_reset_all", use_container_width=True, on_click=set_action, args=("reset_all",))
                 
     with col_filter:
-        st.markdown('<div class="filter-bar-box">', unsafe_allow_html=True)
         f_cols = st.columns(len(events_data["nations"]))
         for i, nation in enumerate(events_data["nations"]):
             with f_cols[i]:
                 st.markdown(f'<div class="filter-n{nation["id"]}">', unsafe_allow_html=True)
                 is_checked = st.session_state.active_nations[nation['id']]
-                new_val = st.checkbox(nation['name'], value=is_checked, key=f"filter_{nation['id']}")
+                new_val = st.checkbox(nation['name'], value=is_checked, key=f"filter_check_{nation['id']}")
                 st.session_state.active_nations[nation['id']] = new_val
                 st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown("<hr style='margin: 0; border: none; border-top: 2px solid #e2e8f0;'>", unsafe_allow_html=True)
 
@@ -185,6 +173,22 @@ with st.container():
             
             svg {{ width: 100%; height: 100%; cursor: grab; }}
             svg:active {{ cursor: grabbing; }}
+            
+            /* 색상 안내(Color Legend) 상자 - 클릭 이벤트 비활성화 */
+            #legend-container {{
+                position: absolute; top: 15px; right: 15px;
+                background-color: rgba(255, 255, 255, 0.95);
+                border: 1px solid #000000; border-radius: 25px;
+                padding: 8px 20px; display: flex;
+                align-items: center; gap: 15px; z-index: 20;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+                pointer-events: none;
+            }}
+            .legend-item {{
+                display: flex; align-items: center; gap: 6px;
+                font-size: 14px; font-weight: bold; color: #2d3436; user-select: none;
+            }}
+            .color-circle {{ width: 14px; height: 14px; border-radius: 50%; }}
             
             .node {{ cursor: grab; transition: opacity 0.3s; }}
             .node:active {{ cursor: grabbing; }}
@@ -219,6 +223,9 @@ with st.container():
     <div id="map-container">
         <div id="bordered-box" tabindex="0">
             <div id="network-container">
+                <!-- JS 부분의 색상 안내(Color Legend) 요소 -->
+                <div id="legend-container"></div>
+                
                 <svg id="network">
                     <defs>
                         <marker id="arrow" viewBox="0 -5 10 10" refX="28" refY="0" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,-5L10,0L0,5" fill="#b2bec3"></path></marker>
@@ -407,7 +414,7 @@ with st.container():
                 try {{
                     appData = JSON.parse(ev.target.result); initialData = JSON.parse(JSON.stringify(appData)); isDirty = false;
                     historyStack = []; historyIndex = -1; pushHistory();
-                    initData(); renderNetwork(); updateViewBox();
+                    initData(); renderLegend(); renderNetwork(); updateViewBox();
                 }} catch(err) {{ alert('파일을 불러오는데 실패했습니다.'); }}
             }};
             reader.readAsText(file); e.target.value = ""; 
@@ -426,6 +433,22 @@ with st.container():
             parsedEdges = [];
             appData.nodes.forEach(node => {{
                 (node.results || []).forEach(targetId => {{ parsedEdges.push({{ source: node.id, target: targetId }}); }});
+            }});
+        }}
+
+        // 색상 안내(Color Legend) 렌더링
+        function renderLegend() {{
+            const legendContainer = document.getElementById('legend-container');
+            if (!legendContainer) return;
+            legendContainer.innerHTML = '';
+            appData.nations.forEach(nItem => {{
+                const item = document.createElement('div');
+                item.className = 'legend-item';
+                item.innerHTML = `
+                    <div class="color-circle" style="background-color: ${{nItem.color}};"></div>
+                    <span>${{nItem.name}}</span>
+                `;
+                legendContainer.appendChild(item);
             }});
         }}
 
@@ -605,6 +628,7 @@ with st.container():
         document.getElementById('close-btn').addEventListener('click', closeSidebar);
 
         initData();
+        renderLegend();
         pushHistory();
         renderNetwork();
         updateViewBox();
@@ -616,7 +640,7 @@ with st.container():
     components.html(html_code, height=750, scrolling=False)
 
 # ==========================================
-# 5. postMessage 방식 상태 동기화 이벤트 송출
+# 5. postMessage 동기화 (Python state -> JS iframe)
 # ==========================================
 active_ids = [k for k, v in st.session_state.active_nations.items() if v]
 current_action = st.session_state.js_action
