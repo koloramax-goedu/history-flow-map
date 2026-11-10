@@ -651,7 +651,23 @@ html_code = f"""
         const reader = new FileReader();
         reader.onload = (ev) => {{
             try {{
-                appData = JSON.parse(ev.target.result);
+                const parsed = JSON.parse(ev.target.result);
+                
+                // 데이터 기본 구조 및 필수 키 검증
+                if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {{
+                    throw new Error("Invalid format");
+                }}
+                if (!parsed.map_size || typeof parsed.map_size.x !== 'number' || typeof parsed.map_size.y !== 'number') {{
+                    throw new Error("Invalid map_size");
+                }}
+                if (!parsed.screen_position || typeof parsed.screen_position.x !== 'number' || typeof parsed.screen_position.y !== 'number') {{
+                    throw new Error("Invalid screen_position");
+                }}
+                if (!Array.isArray(parsed.nations) || !Array.isArray(parsed.nodes)) {{
+                    throw new Error("Invalid arrays");
+                }}
+
+                appData = parsed;
                 initialData = JSON.parse(JSON.stringify(appData));
                 isDirty = false;
                 
@@ -663,7 +679,7 @@ html_code = f"""
                 renderNetwork();
                 updateViewBox();
             }} catch(err) {{
-                alert('파일을 불러오는데 실패했습니다. 올바른 JSON 파일인지 확인하세요.');
+                alert('유효하지 않은 JSON 파일입니다.');
             }}
         }};
         reader.readAsText(file);
